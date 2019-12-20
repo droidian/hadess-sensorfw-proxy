@@ -54,6 +54,19 @@ properties_changed (GDBusProxy *proxy,
 		g_variant_unref (v);
 		g_variant_unref (unit);
 	}
+	if (g_variant_dict_contains (&dict, "HasProximity")) {
+		v = g_dbus_proxy_get_cached_property (iio_proxy, "HasProximity");
+		if (g_variant_get_boolean (v))
+			g_print ("+++ Proximity sensor appeared\n");
+		else
+			g_print ("--- Proximity sensor disappeared\n");
+		g_variant_unref (v);
+	}
+	if (g_variant_dict_contains (&dict, "ProximityNear")) {
+		v = g_dbus_proxy_get_cached_property (iio_proxy, "ProximityNear");
+		g_print ("    Proximity value changed: %d\n", g_variant_get_boolean (v));
+		g_variant_unref (v);
+	}
 	if (g_variant_dict_contains (&dict, "HasCompass")) {
 		v = g_dbus_proxy_get_cached_property (iio_proxy_compass, "HasCompass");
 		if (g_variant_get_boolean (v))
@@ -100,6 +113,17 @@ print_initial_values (void)
 		g_variant_unref (unit);
 	} else {
 		g_print ("=== No ambient light sensor\n");
+	}
+	g_variant_unref (v);
+
+	v = g_dbus_proxy_get_cached_property (iio_proxy, "HasProximity");
+	if (g_variant_get_boolean (v)) {
+		g_variant_unref (v);
+		v = g_dbus_proxy_get_cached_property (iio_proxy, "ProximityNear");
+		g_print ("=== Has proximity sensor (near: %d)\n",
+			 g_variant_get_boolean (v));
+	} else {
+		g_print ("=== No proximity sensor\n");
 	}
 	g_variant_unref (v);
 
@@ -183,6 +207,21 @@ appeared_cb (GDBusConnection *connection,
 	if (!ret) {
 		if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
 			g_warning ("Failed to claim light sensor: %s", error->message);
+		g_main_loop_quit (loop);
+		return;
+	}
+	g_clear_pointer (&ret, g_variant_unref);
+
+	/* Proximity sensor */
+	ret = g_dbus_proxy_call_sync (iio_proxy,
+				      "ClaimProximity",
+				      NULL,
+				      G_DBUS_CALL_FLAGS_NONE,
+				      -1,
+				      NULL, &error);
+	if (!ret) {
+		if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+			g_warning ("Failed to claim proximity sensor: %s", error->message);
 		g_main_loop_quit (loop);
 		return;
 	}
