@@ -12,6 +12,7 @@ SUBSYSTEM=="iio", TEST=="in_illuminance_input", ENV{IIO_SENSOR_PROXY_TYPE}="iio-
 SUBSYSTEM=="iio", TEST=="in_illuminance0_input", ENV{IIO_SENSOR_PROXY_TYPE}="iio-poll-als"
 SUBSYSTEM=="iio", TEST=="in_illuminance_raw", ENV{IIO_SENSOR_PROXY_TYPE}="iio-poll-als"
 SUBSYSTEM=="iio", TEST=="scan_elements/in_intensity_both_en", ENV{IIO_SENSOR_PROXY_TYPE}="iio-buffer-als"
+SUBSYSTEM=="iio", TEST=="in_proximity_raw", ENV{IIO_SENSOR_PROXY_TYPE}="iio-poll-proximity"
 SUBSYSTEM=="input", ENV{ID_INPUT_ACCELEROMETER}=="1", ENV{IIO_SENSOR_PROXY_TYPE}="input-accel"
 
 ENV{IIO_SENSOR_PROXY_TYPE}=="", GOTO="iio_sensor_proxy_end"
