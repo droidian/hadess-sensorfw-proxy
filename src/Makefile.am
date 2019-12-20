@@ -17,6 +17,7 @@ iio_sensor_proxy_SOURCES =			\
 	orientation.h				\
 	drv-iio-buffer-accel.c			\
 	drv-iio-poll-accel.c			\
+	drv-iio-poll-proximity.c		\
 	drv-input-accel.c			\
 	drv-fake-compass.c			\
 	drv-fake-light.c			\

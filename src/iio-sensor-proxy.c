@@ -29,7 +29,7 @@
 #define SENSOR_PROXY_IFACE_NAME         SENSOR_PROXY_DBUS_NAME
 #define SENSOR_PROXY_COMPASS_IFACE_NAME SENSOR_PROXY_DBUS_NAME ".Compass"
 
-#define NUM_SENSOR_TYPES DRIVER_TYPE_COMPASS + 1
+#define NUM_SENSOR_TYPES DRIVER_TYPE_PROXIMITY + 1
 
 typedef struct {
 	GMainLoop *loop;
@@ -52,6 +52,9 @@ typedef struct {
 
 	/* Compass */
 	gdouble previous_heading;
+
+	/* Proximity */
+	gboolean previous_prox_near;
 } SensorData;
 
 static const SensorDriver * const drivers[] = {
@@ -63,7 +66,8 @@ static const SensorDriver * const drivers[] = {
 	&hwmon_light,
 	&fake_compass,
 	&fake_light,
-	&iio_buffer_compass
+	&iio_buffer_compass,
+	&iio_poll_proximity,
 };
 
 static ReadingsUpdateFunc driver_type_to_callback_func (DriverType type);
@@ -78,6 +82,8 @@ driver_type_to_str (DriverType type)
 		return "ambient light sensor";
 	case DRIVER_TYPE_COMPASS:
 		return "compass";
+	case DRIVER_TYPE_PROXIMITY:
+		return "proximity";
 	default:
 		g_assert_not_reached ();
 	}
@@ -133,6 +139,7 @@ find_sensors (GUdevClient *client,
 
 		if (driver_type_exists (data, DRIVER_TYPE_ACCEL) &&
 		    driver_type_exists (data, DRIVER_TYPE_LIGHT) &&
+		    driver_type_exists (data, DRIVER_TYPE_PROXIMITY) &&
 		    driver_type_exists (data, DRIVER_TYPE_COMPASS))
 			break;
 	}
@@ -164,13 +171,17 @@ typedef enum {
 	PROP_HAS_AMBIENT_LIGHT		= 1 << 2,
 	PROP_LIGHT_LEVEL		= 1 << 3,
 	PROP_HAS_COMPASS                = 1 << 4,
-	PROP_COMPASS_HEADING            = 1 << 5
+	PROP_COMPASS_HEADING            = 1 << 5,
+	PROP_HAS_PROXIMITY              = 1 << 6,
+	PROP_PROXIMITY_NEAR             = 1 << 7,
 } PropertiesMask;
 
 #define PROP_ALL (PROP_HAS_ACCELEROMETER | \
                   PROP_ACCELEROMETER_ORIENTATION | \
                   PROP_HAS_AMBIENT_LIGHT | \
-                  PROP_LIGHT_LEVEL)
+                  PROP_LIGHT_LEVEL | \
+                  PROP_HAS_PROXIMITY | \
+		  PROP_PROXIMITY_NEAR)
 #define PROP_ALL_COMPASS (PROP_HAS_COMPASS | \
 			  PROP_COMPASS_HEADING)
 
@@ -245,6 +256,23 @@ send_dbus_event (SensorData     *data,
 				       g_variant_new_double (data->previous_heading));
 	}
 
+	if (mask & PROP_HAS_PROXIMITY) {
+		gboolean has_proximity;
+
+		has_proximity = driver_type_exists (data, DRIVER_TYPE_PROXIMITY);
+		g_variant_builder_add (&props_builder, "{sv}", "HasProximity",
+				       g_variant_new_boolean (has_proximity));
+
+		/* Send proximity information when the device appears */
+		if (has_proximity)
+			mask |= PROP_PROXIMITY_NEAR;
+	}
+
+	if (mask & PROP_PROXIMITY_NEAR) {
+		g_variant_builder_add (&props_builder, "{sv}", "ProximityNear",
+				       g_variant_new_boolean (data->previous_prox_near));
+	}
+
 	props_changed = g_variant_new ("(s@a{sv}@as)", (mask & PROP_ALL) ? SENSOR_PROXY_IFACE_NAME : SENSOR_PROXY_COMPASS_IFACE_NAME,
 				       g_variant_builder_end (&props_builder),
 				       g_variant_new_strv (NULL, 0));
@@ -265,6 +293,8 @@ send_driver_changed_dbus_event (SensorData   *data,
 		send_dbus_event (data, PROP_HAS_ACCELEROMETER);
 	else if (driver_type == DRIVER_TYPE_LIGHT)
 		send_dbus_event (data, PROP_HAS_AMBIENT_LIGHT);
+	else if (driver_type == DRIVER_TYPE_PROXIMITY)
+		send_dbus_event (data, PROP_HAS_PROXIMITY);
 	else if (driver_type == DRIVER_TYPE_COMPASS)
 		send_dbus_event (data, PROP_HAS_COMPASS);
 	else
@@ -402,6 +432,9 @@ handle_method_call (GDBusConnection       *connection,
 	else if (g_strcmp0 (method_name, "ClaimLight") == 0 ||
 		 g_strcmp0 (method_name, "ReleaseLight") == 0)
 		driver_type = DRIVER_TYPE_LIGHT;
+	else if (g_strcmp0 (method_name, "ClaimProximity") == 0 ||
+		 g_strcmp0 (method_name, "ReleaseProximity") == 0)
+	        driver_type = DRIVER_TYPE_PROXIMITY;
 	else {
 		g_dbus_method_invocation_return_error (invocation,
 						       G_DBUS_ERROR,
@@ -439,6 +472,10 @@ handle_get_property (GDBusConnection *connection,
 		return g_variant_new_string (data->uses_lux ? "lux" : "vendor");
 	if (g_strcmp0 (property_name, "LightLevel") == 0)
 		return g_variant_new_double (data->previous_level);
+	if (g_strcmp0 (property_name, "HasProximity") == 0)
+		return g_variant_new_boolean (driver_type_exists (data, DRIVER_TYPE_PROXIMITY));
+	if (g_strcmp0 (property_name, "ProximityNear") == 0)
+		return g_variant_new_boolean (data->previous_prox_near);
 
 	return NULL;
 }
@@ -684,6 +721,32 @@ compass_changed_func (SensorDriver *driver,
 	}
 }
 
+static void
+proximity_changed_func (SensorDriver *driver,
+			gpointer      readings_data,
+			gpointer      user_data)
+{
+	SensorData *data = user_data;
+	ProximityReadings *readings = (ProximityReadings *) readings_data;
+	gboolean near;
+
+	//FIXME handle errors
+	g_debug ("Proximity sent by driver: %d",
+	         readings->is_near);
+
+	near = readings->is_near > 0;
+	if (data->previous_prox_near != near) {
+		ProximityNear tmp;
+
+		tmp = data->previous_prox_near;
+		data->previous_prox_near = near;
+
+		send_dbus_event (data, PROP_PROXIMITY_NEAR);
+		g_debug ("Emitted proximity changed: from %d to %d",
+			 tmp, near);
+	}
+}
+
 static ReadingsUpdateFunc
 driver_type_to_callback_func (DriverType type)
 {
@@ -694,6 +757,8 @@ driver_type_to_callback_func (DriverType type)
 		return light_changed_func;
 	case DRIVER_TYPE_COMPASS:
 		return compass_changed_func;
+	case DRIVER_TYPE_PROXIMITY:
+		return proximity_changed_func;
 	default:
 		g_assert_not_reached ();
 	}

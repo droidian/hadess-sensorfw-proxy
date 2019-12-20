@@ -15,6 +15,7 @@ typedef enum {
 	DRIVER_TYPE_ACCEL,
 	DRIVER_TYPE_LIGHT,
 	DRIVER_TYPE_COMPASS,
+	DRIVER_TYPE_PROXIMITY,
 } DriverType;
 
 /* Driver types */
@@ -36,6 +37,16 @@ typedef enum {
   DRIVER_TYPE_COMPASS_FAKE
 } DriverTypeCompass;
 
+typedef enum {
+  DRIVER_TYPE_PROXIMITY_IIO,
+} DriverTypeProximity;
+
+typedef enum {
+  PROXIMITY_NEAR_ERROR = -1,
+  PROXIMITY_NEAR_FALSE =  0,
+  PROXIMITY_NEAR_TRUE  =  1,
+} ProximityNear;
+
 typedef struct SensorDriver SensorDriver;
 
 typedef struct {
@@ -53,6 +64,10 @@ typedef struct {
 typedef struct {
 	gdouble heading;
 } CompassReadings;
+
+typedef struct {
+	ProximityNear is_near;
+} ProximityReadings;
 
 typedef void (*ReadingsUpdateFunc) (SensorDriver *driver,
 				    gpointer      readings,
@@ -132,3 +147,4 @@ extern SensorDriver iio_poll_light;
 extern SensorDriver hwmon_light;
 extern SensorDriver iio_buffer_light;
 extern SensorDriver iio_buffer_compass;
+extern SensorDriver iio_poll_proximity;
