@@ -87,21 +87,21 @@ send_uinput_event (OrientationData *data)
 	ev.type = EV_ABS;
 	ev.code = ABS_X;
 	ev.value = data->accel_x;
-	(void) write (data->uinput, &ev, sizeof(ev));
+	(void) !write (data->uinput, &ev, sizeof(ev));
 
 	ev.code = ABS_Y;
 	ev.value = data->accel_y;
-	(void) write (data->uinput, &ev, sizeof(ev));
+	(void) !write (data->uinput, &ev, sizeof(ev));
 
 	ev.code = ABS_Z;
 	ev.value = data->accel_z;
-	(void) write (data->uinput, &ev, sizeof(ev));
+	(void) !write (data->uinput, &ev, sizeof(ev));
 
 	memset(&ev, 0, sizeof(ev));
 	gettimeofday(&ev.time, NULL);
 	ev.type = EV_SYN;
 	ev.code = SYN_REPORT;
-	(void) write (data->uinput, &ev, sizeof(ev));
+	(void) !write (data->uinput, &ev, sizeof(ev));
 
 	if (!data->uinput_dev)
 		data->uinput_dev = setup_uinput_udev (data->client);
