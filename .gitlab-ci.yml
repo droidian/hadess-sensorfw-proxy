@@ -1,14 +1,14 @@
 image: fedora:rawhide
 
 variables:
-  DEPENDENCIES: make gcc gtk-doc pkgconfig(udev) pkgconfig(systemd) pkgconfig(gio-2.0) pkgconfig(gudev-1.0) systemd
+  DEPENDENCIES: gcc gtk-doc pkgconfig(udev) pkgconfig(systemd) pkgconfig(gio-2.0) pkgconfig(gudev-1.0) systemd gtk3-devel
+      make autoconf autoconf-archive automake libtool
 
 build_stable:
-  allow_failure: true
   before_script:
-    - dnf update -y --nogpgcheck && dnf install -y --nogpgcheck $DEPENDENCIES_STABLE
+    - dnf update -y --nogpgcheck && dnf install -y --nogpgcheck $DEPENDENCIES
   script:
-    - ./autogen.sh --disable-dependency-tracking
+    - ./autogen.sh --disable-dependency-tracking --enable-gtk-doc --enable-gtk-tests
     - make
     - make check
     - make install
