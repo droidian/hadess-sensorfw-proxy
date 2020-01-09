@@ -8,7 +8,7 @@ build_stable:
   before_script:
     - dnf update -y --nogpgcheck && dnf install -y --nogpgcheck $DEPENDENCIES
   script:
-    - ./autogen.sh --disable-dependency-tracking --enable-gtk-doc --enable-gtk-tests
+    - CPPFLAGS='-D_FORTIFY_SOURCE=2' ./autogen.sh --disable-dependency-tracking --enable-gtk-doc --enable-gtk-tests
     - make
     - make check
     - make install
