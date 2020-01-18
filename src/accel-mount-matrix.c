@@ -50,6 +50,21 @@ setup_mount_matrix (GUdevDevice *device)
 		g_clear_pointer (&ret, g_free);
 	}
 
+	/* Linux kernel IIO accelerometer drivers provide mount matrix
+	 * via standardized sysfs interface.
+	 *
+	 * See https://www.kernel.org/doc/Documentation/ABI/testing/sysfs-bus-iio
+	 * for more details. */
+	mount_matrix = g_udev_device_get_sysfs_attr (device, "in_mount_matrix");
+	if (mount_matrix) {
+		if (parse_mount_matrix (mount_matrix, &ret))
+			return ret;
+
+		g_warning ("Failed to parse in_mount_matrix ('%s') from sysfs",
+			   mount_matrix);
+		g_clear_pointer (&ret, g_free);
+	}
+
 	g_debug ("Failed to auto-detect mount matrix, falling back to identity");
 	parse_mount_matrix (NULL, &ret);
 	return ret;
