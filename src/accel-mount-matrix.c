@@ -50,6 +50,23 @@ setup_mount_matrix (GUdevDevice *device)
 		g_clear_pointer (&ret, g_free);
 	}
 
+	/* Some IIO drivers provide multiple sensors via the same sysfs path
+	 * and thus they may have different matrices like in a case of
+	 * accelerometer and angular velocity for example. The accelerometer
+	 * mount matrix is named as in_accel_mount_matrix in that case.
+	 *
+	 * See https://www.kernel.org/doc/Documentation/ABI/testing/sysfs-bus-iio
+	 * for more details. */
+	mount_matrix = g_udev_device_get_sysfs_attr (device, "in_accel_mount_matrix");
+	if (mount_matrix) {
+		if (parse_mount_matrix (mount_matrix, &ret))
+			return ret;
+
+		g_warning ("Failed to parse in_accel_mount_matrix ('%s') from sysfs",
+			   mount_matrix);
+		g_clear_pointer (&ret, g_free);
+	}
+
 	/* Linux kernel IIO accelerometer drivers provide mount matrix
 	 * via standardized sysfs interface.
 	 *
