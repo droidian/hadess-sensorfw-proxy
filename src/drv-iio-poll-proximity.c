@@ -16,8 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-/* FIXME: This needs to come from udev since it's device dependent */
-#define NEAR_LEVEL 200
+#define PROXIMITY_NEAR_LEVEL "PROXIMITY_NEAR_LEVEL"
 
 typedef struct DrvData {
 	guint               timeout_id;
@@ -25,6 +24,7 @@ typedef struct DrvData {
 	gpointer            user_data;
 	GUdevDevice        *dev;
 	const char         *name;
+	gint                near_level;
 } DrvData;
 
 static DrvData *drv_data = NULL;
@@ -57,8 +57,8 @@ poll_proximity (gpointer user_data)
 
 	/* g_udev_device_get_sysfs_attr_as_int does not update when there's no event */
 	prox = sysfs_get_int (data->dev, "in_proximity_raw");
-	readings.is_near = (prox > NEAR_LEVEL) ? TRUE : FALSE;
-	g_debug ("Proximity read from IIO on '%s': %d, near: %d", data->name, prox, readings.is_near);
+	readings.is_near = (prox > data->near_level) ? PROXIMITY_NEAR_TRUE : PROXIMITY_NEAR_FALSE;
+	g_debug ("Proximity read from IIO on '%s': %d/%d, near: %d", data->name, prox, data->near_level, readings.is_near);
 
 	drv_data->callback_func (&iio_poll_proximity, (gpointer) &readings, drv_data->user_data);
 
@@ -91,6 +91,23 @@ iio_poll_proximity_set_polling (gboolean state)
 	}
 }
 
+static gint
+get_near_level (GUdevDevice *device)
+{
+	gint near_level;
+
+	near_level = g_udev_device_get_property_as_int (device, PROXIMITY_NEAR_LEVEL);
+	if (!near_level) {
+		g_warning ("Found proximity sensor but no " PROXIMITY_NEAR_LEVEL " udev property");
+		g_warning ("See https://gitlab.freedesktop.org/hadess/iio-sensor-proxy/blob/master/README.md");
+		return 0;
+	}
+
+	g_debug ("Near level: %d", near_level);
+	return near_level;
+}
+
+
 static gboolean
 iio_poll_proximity_open (GUdevDevice        *device,
 			 ReadingsUpdateFunc  callback_func,
@@ -103,6 +120,12 @@ iio_poll_proximity_open (GUdevDevice        *device,
 	drv_data->name = g_udev_device_get_sysfs_attr (device, "name");
 	drv_data->callback_func = callback_func;
 	drv_data->user_data = user_data;
+	drv_data->near_level = get_near_level (device);
+
+	if (!drv_data->near_level) {
+		g_free (drv_data);
+		return FALSE;
+	}
 
 	return TRUE;
 }
