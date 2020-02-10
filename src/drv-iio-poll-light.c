@@ -33,11 +33,7 @@ static DrvData *drv_data = NULL;
 static gboolean
 iio_poll_light_discover (GUdevDevice *device)
 {
-	if (g_strcmp0 (g_udev_device_get_property (device, "IIO_SENSOR_PROXY_TYPE"), "iio-poll-als") != 0)
-		return FALSE;
-
-	g_debug ("Found IIO poll light at %s", g_udev_device_get_sysfs_path (device));
-	return TRUE;
+	return drv_check_udev_sensor_type (device, "iio-poll-als", "IIO poll als");
 }
 
 static gboolean

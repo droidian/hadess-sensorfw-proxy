@@ -76,12 +76,7 @@ poll_proximity (gpointer user_data)
 static gboolean
 iio_poll_proximity_discover (GUdevDevice *device)
 {
-	/* We also handle devices with trigger buffers, but there's no trigger available on the system */
-	if (g_strcmp0 (g_udev_device_get_property (device, "IIO_SENSOR_PROXY_TYPE"), "iio-poll-proximity") != 0)
-		return FALSE;
-
-	g_debug ("Found IIO poll proximity sensor at %s", g_udev_device_get_sysfs_path (device));
-	return TRUE;
+	return drv_check_udev_sensor_type (device, "iio-poll-proximity", "IIO poll proximity sensor");
 }
 
 static void

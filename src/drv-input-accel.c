@@ -98,7 +98,7 @@ input_accel_discover (GUdevDevice *device)
 	const char *path;
 	g_autoptr(GUdevDevice) parent = NULL;
 
-	if (g_strcmp0 (g_udev_device_get_property (device, "IIO_SENSOR_PROXY_TYPE"), "input-accel") != 0)
+	if (!drv_check_udev_sensor_type (device, "input-accel", NULL))
 		return FALSE;
 
 	path = g_udev_device_get_device_file (device);

@@ -12,6 +12,7 @@ sbin_PROGRAMS = iio-sensor-proxy
 
 iio_sensor_proxy_SOURCES =			\
 	iio-sensor-proxy.c			\
+	drivers.c				\
 	drivers.h				\
 	orientation.c				\
 	orientation.h				\
