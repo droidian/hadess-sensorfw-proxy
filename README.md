@@ -98,6 +98,21 @@ If your device does not contain a compass, you can run tests with:
 - As root, get a shell as the `geoclue` user with `su -s /bin/bash geoclue`
 - Run, as the `geoclue` user, `monitor-sensor`
 
+Proximity sensor near detection
+-------------------------------
+
+Whether an object is considered near to a proximity sensor depends on the
+sensor configuration and scale but also on the device's physical properties
+(e.g. the distance of the sensor from the covering glass) so there is
+no good device-independent default.
+
+`iio-sensor-proxy` reads this information from the device's
+`PROXIMITY_NEAR_LEVEL` udev property. See [60-sensor.hwdb](https://github.com/systemd/systemd/blob/master/hwdb.d/60-sensor.hwdb)
+for details.
+
+For device-tree based devices, exporting the information through the kernel is still
+[a work in progress](https://lore.kernel.org/linux-iio/cover.1581947007.git.agx@sigxcpu.org/)
+
 Known problems
 --------------
 
