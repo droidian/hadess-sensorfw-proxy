@@ -43,7 +43,7 @@ light_changed (gpointer user_data)
 	LightReadings readings;
 	gdouble level;
 	char *contents;
-	GError *error = NULL;
+	g_autoptr(GError) error = NULL;
 
 	if (g_file_get_contents (drv_data->light_path, &contents, NULL, &error)) {
 		int light1, light2;
@@ -57,7 +57,6 @@ light_changed (gpointer user_data)
 	} else {
 		g_warning ("Failed to read input level at %s: %s",
 			   drv_data->light_path, error->message);
-		g_error_free (error);
 		return G_SOURCE_CONTINUE;
 	}
 

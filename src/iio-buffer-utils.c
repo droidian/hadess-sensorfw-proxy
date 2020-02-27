@@ -586,14 +586,13 @@ iio_fixup_sampling_frequency (GUdevDevice *dev)
 	GDir *dir;
 	const char *device_dir;
 	const char *name;
-	GError *error = NULL;
+	g_autoptr(GError) error = NULL;
 	double sample_freq;
 
 	device_dir = g_udev_device_get_sysfs_path (dev);
 	dir = g_dir_open (g_udev_device_get_sysfs_path (dev), 0, &error);
 	if (!dir) {
 		g_warning ("Failed to open directory '%s': %s", device_dir, error->message);
-		g_error_free (error);
 		return FALSE;
 	}
 
@@ -626,14 +625,13 @@ enable_sensors (GUdevDevice *dev,
 	char *device_dir;
 	const char *name;
 	gboolean ret = FALSE;
-	GError *error = NULL;
+	g_autoptr(GError) error = NULL;
 
 	device_dir = g_build_filename (g_udev_device_get_sysfs_path (dev), "scan_elements", NULL);
 	dir = g_dir_open (device_dir, 0, &error);
 	if (!dir) {
 		g_warning ("Failed to open directory '%s': %s", device_dir, error->message);
 		g_free (device_dir);
-		g_error_free (error);
 		return FALSE;
 	}
 
