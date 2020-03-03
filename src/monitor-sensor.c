@@ -129,7 +129,7 @@ appeared_cb (GDBusConnection *connection,
 	     const gchar     *name_owner,
 	     gpointer         user_data)
 {
-	GError *error = NULL;
+	g_autoptr(GError) error = NULL;
 	GVariant *ret = NULL;
 
 	g_print ("+++ iio-sensor-proxy appeared\n");
