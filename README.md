@@ -80,6 +80,10 @@ orientation matches the screen one.
 `ACCEL_MOUNT_MATRIX` udev property. See [60-sensor.hwdb](https://github.com/systemd/systemd/blob/master/hwdb.d/60-sensor.hwdb)
 for details.
 
+For device-tree based devices, and some ACPI ones too, the `mount_matrix`,
+`in_accel_mount_matrix` and `in_mount_matrix` sysfs files can also be used
+to export that information directly from the kernel.
+
 Compass testing
 ---------------
 
