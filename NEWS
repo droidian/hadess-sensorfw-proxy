@@ -1,3 +1,12 @@
+3.0
+---
+
+This release adds support for a number of sensors that didn't work
+before, usually due to being combined with other sensors of the
+same or different types (eg. dual-accelerometers, light/proximity
+combined sensors, etc.), and adds support for kernel-exported
+mount-matrix properties on Device Tree hardware.
+
 2.8
 ---
 
