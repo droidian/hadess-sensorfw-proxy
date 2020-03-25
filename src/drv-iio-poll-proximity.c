@@ -100,6 +100,9 @@ get_near_level (GUdevDevice *device)
 	gint near_level;
 
 	near_level = g_udev_device_get_property_as_int (device, PROXIMITY_NEAR_LEVEL);
+	if (!near_level)
+		near_level = g_udev_device_get_sysfs_attr_as_int (device, "in_proximity_nearlevel");
+
 	if (!near_level) {
 		g_warning ("Found proximity sensor but no " PROXIMITY_NEAR_LEVEL " udev property");
 		g_warning ("See https://gitlab.freedesktop.org/hadess/iio-sensor-proxy/blob/master/README.md");
