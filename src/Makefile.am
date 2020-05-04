@@ -30,8 +30,10 @@ iio_sensor_proxy_SOURCES =			\
 	iio-buffer-utils.c			\
 	accel-mount-matrix.h			\
 	accel-mount-matrix.c			\
-	accel-attributes.h				\
-	accel-attributes.c				\
+	accel-attributes.h			\
+	accel-attributes.c			\
+	accel-scale.h				\
+	accel-scale.c				\
 	$(BUILT_SOURCES)
 
 iio_sensor_proxy_CPPFLAGS =			\
