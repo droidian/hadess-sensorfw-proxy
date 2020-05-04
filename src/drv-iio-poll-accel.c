@@ -25,7 +25,7 @@ typedef struct DrvData {
 	const char         *name;
 	AccelVec3          *mount_matrix;
 	AccelLocation       location;
-	gdouble             scale;
+	AccelScale          scale;
 } DrvData;
 
 static DrvData *drv_data = NULL;
@@ -60,10 +60,11 @@ poll_orientation (gpointer user_data)
 	accel_x = sysfs_get_int (data->dev, "in_accel_x_raw");
 	accel_y = sysfs_get_int (data->dev, "in_accel_y_raw");
 	accel_z = sysfs_get_int (data->dev, "in_accel_z_raw");
-	readings.scale = data->scale;
+	copy_accel_scale (&readings.scale, data->scale);
 
-	g_debug ("Accel read from IIO on '%s': %d, %d, %d (scale %lf)", data->name,
-		 accel_x, accel_y, accel_z, readings.scale);
+	g_debug ("Accel read from IIO on '%s': %d, %d, %d (scale %lf,%lf,%lf)", data->name,
+		 accel_x, accel_y, accel_z,
+		 data->scale.x, data->scale.y, data->scale.z);
 
 	tmp.x = accel_x;
 	tmp.y = accel_y;
@@ -127,7 +128,8 @@ iio_poll_accel_open (GUdevDevice        *device,
 	drv_data->location = setup_accel_location (device);
 	drv_data->callback_func = callback_func;
 	drv_data->user_data = user_data;
-	drv_data->scale = get_accel_scale (device);
+	if (!get_accel_scale (device, &drv_data->scale))
+		reset_accel_scale (&drv_data->scale);
 
 	return TRUE;
 }

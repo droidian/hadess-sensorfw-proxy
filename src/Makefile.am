@@ -68,7 +68,9 @@ test_mount_matrix_LDADD = $(IIO_SENSOR_PROXY_LIBS)
 test_accel_location_SOURCES =			\
 	test-accel-location.c			\
 	accel-attributes.h			\
-	accel-attributes.c
+	accel-attributes.c			\
+	accel-scale.h				\
+	accel-scale.c
 
 test_accel_location_CPPFLAGS =			\
 	$(IIO_SENSOR_PROXY_CFLAGS)		\
@@ -80,7 +82,9 @@ test_orientation_SOURCES =			\
 	orientation.c				\
 	orientation.h				\
 	accel-mount-matrix.c			\
-	accel-mount-matrix.h
+	accel-mount-matrix.h			\
+	accel-scale.h				\
+	accel-scale.c
 
 test_orientation_CPPFLAGS =			\
 	$(IIO_SENSOR_PROXY_CFLAGS)		\
@@ -92,7 +96,9 @@ noinst_PROGRAMS += test-orientation-gtk
 test_orientation_gtk_SOURCES =			\
 	test-orientation-gtk.c			\
 	orientation.c				\
-	orientation.h
+	orientation.h				\
+	accel-scale.h				\
+	accel-scale.c
 test_orientation_gtk_CPPFLAGS =			\
 	$(GTK_TESTS_CFLAGS)			\
 	$(WARN_CFLAGS)

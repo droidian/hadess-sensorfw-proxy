@@ -10,6 +10,7 @@
 #include <gudev/gudev.h>
 
 #include "accel-attributes.h"
+#include "accel-scale.h"
 
 typedef enum {
 	DRIVER_TYPE_ACCEL,
@@ -53,7 +54,7 @@ typedef struct {
 	int accel_x;
 	int accel_y;
 	int accel_z;
-	gdouble scale;
+	AccelScale scale;
 } AccelReadings;
 
 typedef struct {

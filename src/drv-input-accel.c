@@ -141,9 +141,11 @@ accelerometer_changed (void)
 	close (fd);
 
 	/* Scale from 1G ~= 256 to a value in m/s² */
-	readings.scale = 1.0 / 256 * 9.81;
+	set_accel_scale (&readings.scale, 1.0 / 256 * 9.81);
 
-	g_debug ("Accel read from input on '%s': %d, %d, %d (scale %lf)", drv_data->name, accel_x, accel_y, accel_z, readings.scale);
+	g_debug ("Accel read from input on '%s': %d, %d, %d (scale %lf,%lf,%lf)", drv_data->name,
+		 accel_x, accel_y, accel_z,
+		 readings.scale.x, readings.scale.y, readings.scale.z);
 
 	tmp.x = accel_x;
 	tmp.y = accel_y;

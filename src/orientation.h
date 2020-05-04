@@ -14,6 +14,8 @@
  *
  */
 
+#include "accel-scale.h"
+
 typedef enum {
         ORIENTATION_UNDEFINED,
         ORIENTATION_NORMAL,
@@ -31,4 +33,4 @@ OrientationUp  orientation_calc      (OrientationUp prev,
 				      int           x,
 				      int           y,
 				      int           z,
-				      gdouble       scale);
+				      AccelScale    scale);

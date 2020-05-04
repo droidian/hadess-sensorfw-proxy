@@ -57,22 +57,28 @@ parse_accel_location (const char *location, AccelLocation *value)
 	}
 }
 
-gdouble
-get_accel_scale (GUdevDevice *device)
+gboolean
+get_accel_scale (GUdevDevice *device,
+		 AccelScale  *scale_vec)
 {
 	gdouble scale;
+
+	g_return_val_if_fail (scale_vec != NULL, FALSE);
 
 	scale = g_udev_device_get_sysfs_attr_as_double (device, "in_accel_scale");
 	if (scale != 0.0) {
 		g_debug ("Attribute in_accel_scale ('%f') found on sysfs", scale);
-		return scale;
+		set_accel_scale (scale_vec, scale);
+		return TRUE;
 	}
 	scale = g_udev_device_get_sysfs_attr_as_double (device, "scale");
 	if (scale != 0.0) {
 		g_debug ("Attribute scale ('%f') found on sysfs", scale);
-		return scale;
+		set_accel_scale (scale_vec, scale);
+		return TRUE;
 	}
 
 	g_debug ("Failed to auto-detect scale, falling back to 1.0");
-	return 1.0;
+	reset_accel_scale (scale_vec);
+	return TRUE;
 }

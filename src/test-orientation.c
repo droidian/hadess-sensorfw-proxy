@@ -35,12 +35,14 @@ test_orientation (void)
 	for (i = 0; i < G_N_ELEMENTS (orientations); i++) {
 		OrientationUp o;
 		const char *expected, *result;
+		AccelScale scale;
 
+		set_accel_scale (&scale, 9.81 / ONEG);
 		o = orientation_calc (ORIENTATION_UNDEFINED,
 				      orientations[i].x,
 				      orientations[i].y,
 				      orientations[i].z,
-				      9.81 / ONEG);
+				      scale);
 		result = orientation_to_string (o);
 		expected = orientation_to_string (orientations[i].expected);
 		/* Fail straight away when not verbose */
@@ -81,12 +83,14 @@ test_orientation_threshold (void)
 	for (i = 0; i < G_N_ELEMENTS (orientations); i++) {
 		OrientationUp o;
 		const char *expected, *result;
+		AccelScale scale;
 
+		set_accel_scale (&scale, 9.81 / ONEG);
 		o = orientation_calc (prev,
 				      orientations[i].x,
 				      orientations[i].y,
 				      orientations[i].z,
-				      9.81 / ONEG);
+				      scale);
 		result = orientation_to_string (o);
 		expected = orientation_to_string (orientations[i].expected);
 		/* Fail straight away when not verbose */
@@ -128,14 +132,16 @@ test_mount_matrix_orientation (void)
 		AccelVec3 *vecs;
 		const char *result, *expected;
 		OrientationUp o;
+		AccelScale scale;
 
 		g_assert_true (parse_mount_matrix (tests[i].mount_matrix, &vecs));
 		g_assert_true (apply_mount_matrix (vecs, &tests[i].readings));
+		set_accel_scale (&scale, tests[i].scale);
 		o = orientation_calc (ORIENTATION_UNDEFINED,
 				      tests[i].readings.x,
 				      tests[i].readings.y,
 				      tests[i].readings.z,
-				      tests[i].scale);
+				      scale);
 		result = orientation_to_string (o);
 		expected = orientation_to_string (tests[i].expected);
 		g_assert_cmpstr (result, ==, expected);
@@ -153,6 +159,7 @@ print_orientation (const char *x_str,
 	int x, y, z;
 	gdouble scale;
 	OrientationUp o;
+	AccelScale scale_vec;
 
 	if (scale_str == NULL)
 		scale = 1.0;
@@ -190,7 +197,8 @@ print_orientation (const char *x_str,
 		g_free (vecs);
 	}
 
-	o = orientation_calc (ORIENTATION_UNDEFINED, x, y, z, scale);
+	set_accel_scale (&scale_vec, scale);
+	o = orientation_calc (ORIENTATION_UNDEFINED, x, y, z, scale_vec);
 	g_print ("Orientation for %d,%d,%d (scale: %lf) is '%s'\n",
 		 x, y, z, scale, orientation_to_string (o));
 

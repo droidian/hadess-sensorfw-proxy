@@ -11,6 +11,8 @@
 #include <glib.h>
 #include <gudev/gudev.h>
 
+#include "accel-scale.h"
+
 typedef enum {
 	ACCEL_LOCATION_DISPLAY,
 	ACCEL_LOCATION_BASE,
@@ -21,4 +23,4 @@ AccelLocation setup_accel_location (GUdevDevice *device);
 gboolean parse_accel_location (const char    *location,
                                AccelLocation *value);
 
-gdouble get_accel_scale (GUdevDevice *device);
+gboolean get_accel_scale (GUdevDevice *device, AccelScale *scale_vec);

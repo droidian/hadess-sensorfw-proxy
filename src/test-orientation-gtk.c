@@ -21,12 +21,14 @@ value_changed (GtkSpinButton *spin_button,
 {
 	int x, y, z;
 	OrientationUp o;
+	AccelScale scale;
 
 	x = gtk_spin_button_get_value (GTK_SPIN_BUTTON (scale_x));
 	y = gtk_spin_button_get_value (GTK_SPIN_BUTTON (scale_y));
 	z = gtk_spin_button_get_value (GTK_SPIN_BUTTON (scale_z));
 
-	o = orientation_calc (ORIENTATION_UNDEFINED, x, y, z, 9.81 / ONEG);
+	set_accel_scale (&scale, 9.81 / ONEG);
+	o = orientation_calc (ORIENTATION_UNDEFINED, x, y, z, scale);
 	gtk_label_set_text (GTK_LABEL (label), orientation_to_string (o));
 }
 

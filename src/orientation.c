@@ -58,12 +58,12 @@ string_to_orientation (const char *orientation)
 
 /* First apply scale to get m/s², then
  * convert to 1G ~= 256 as the code expects */
-#define SCALE(a) ((int) ((gdouble) a * scale * 256.0 / 9.81))
+#define SCALE(a) ((int) ((double) in_##a * scale.a * 256.0 / 9.81))
 
 OrientationUp
 orientation_calc (OrientationUp prev,
                   int in_x, int in_y, int in_z,
-                  gdouble scale)
+                  AccelScale scale)
 {
         OrientationUp ret = prev;
         int x, y, z;
@@ -71,9 +71,9 @@ orientation_calc (OrientationUp prev,
         int landscape_rotation;
 
         /* this code expects 1G ~= 256 */
-        x = SCALE(in_x);
-        y = SCALE(in_y);
-        z = SCALE(in_z);
+        x = SCALE(x);
+        y = SCALE(y);
+        z = SCALE(z);
 
         portrait_rotation  = round(atan2(x, sqrt(y * y + z * z)) * RADIANS_TO_DEGREES);
         landscape_rotation = round(atan2(y, sqrt(x * x + z * z)) * RADIANS_TO_DEGREES);

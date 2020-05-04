@@ -653,10 +653,13 @@ accel_changed_func (SensorDriver *driver,
 	OrientationUp orientation = data->previous_orientation;
 
 	//FIXME handle errors
-	g_debug ("Accel sent by driver (quirk applied): %d, %d, %d (scale: %lf)",
-		 readings->accel_x, readings->accel_y, readings->accel_z, readings->scale);
+	g_debug ("Accel sent by driver (quirk applied): %d, %d, %d (scale: %lf,%lf,%lf)",
+		 readings->accel_x, readings->accel_y, readings->accel_z,
+		 readings->scale.x, readings->scale.y, readings->scale.z);
 
-	orientation = orientation_calc (data->previous_orientation, readings->accel_x, readings->accel_y, readings->accel_z, readings->scale);
+	orientation = orientation_calc (data->previous_orientation,
+					readings->accel_x, readings->accel_y, readings->accel_z,
+					readings->scale);
 
 	if (data->previous_orientation != orientation) {
 		OrientationUp tmp;
