@@ -65,6 +65,19 @@ get_accel_scale (GUdevDevice *device,
 
 	g_return_val_if_fail (scale_vec != NULL, FALSE);
 
+	scale = g_udev_device_get_sysfs_attr_as_double (device, "in_accel_x_scale");
+	if (scale != 0.0) {
+		scale_vec->x = scale;
+		scale_vec->y = g_udev_device_get_sysfs_attr_as_double (device, "in_accel_y_scale");
+		scale_vec->z = g_udev_device_get_sysfs_attr_as_double (device, "in_accel_z_scale");
+		if (scale_vec->y != 0.0 &&
+		    scale_vec->z != 0.0) {
+			g_debug ("Attribute in_accel_{x,y,z}_scale (%f,%f,%f) found in sysfs",
+				 scale_vec->x, scale_vec->y, scale_vec->z);
+			return TRUE;
+		}
+		g_warning ("Could not read in_accel_{x,y,z}_scale attributes, kernel bug");
+	}
 	scale = g_udev_device_get_sysfs_attr_as_double (device, "in_accel_scale");
 	if (scale != 0.0) {
 		g_debug ("Attribute in_accel_scale ('%f') found on sysfs", scale);
