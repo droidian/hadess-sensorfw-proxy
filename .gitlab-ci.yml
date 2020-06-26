@@ -2,15 +2,16 @@ image: fedora:rawhide
 
 variables:
   DEPENDENCIES: gcc gtk-doc pkgconfig(udev) pkgconfig(systemd) pkgconfig(gio-2.0) pkgconfig(gudev-1.0) systemd gtk3-devel
-      make autoconf autoconf-archive automake libtool
+      meson git
 
 build_stable:
   before_script:
     - dnf upgrade -y --nogpgcheck fedora-release fedora-repos*
     - dnf update -y && dnf install -y $DEPENDENCIES
   script:
-    - CPPFLAGS='-D_FORTIFY_SOURCE=2' ./autogen.sh --disable-dependency-tracking --enable-gtk-doc --enable-gtk-tests
-    - make
-    - make check
-    - make install
-
+    - meson -Dgtk_doc=true -Dgtk-tests=true _build
+    - ninja -v -C _build
+    - ninja -v -C _build install
+    - ninja -v -C _build uninstall
+    - ninja -v -C _build dist
+    - meson test -C _build
