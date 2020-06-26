@@ -38,6 +38,7 @@ iio_sensor_proxy_SOURCES =			\
 
 iio_sensor_proxy_CPPFLAGS =			\
 	$(IIO_SENSOR_PROXY_CFLAGS)		\
+	-D_GNU_SOURCE=1				\
 	$(WARN_CFLAGS)
 iio_sensor_proxy_LDADD = $(IIO_SENSOR_PROXY_LIBS) $(LIBM)
 
@@ -49,6 +50,7 @@ fake_input_accelerometer_SOURCES =		\
 
 fake_input_accelerometer_CPPFLAGS =		\
 	$(IIO_SENSOR_PROXY_CFLAGS)		\
+	-D_GNU_SOURCE=1				\
 	$(WARN_CFLAGS)
 fake_input_accelerometer_LDADD = $(IIO_SENSOR_PROXY_LIBS)
 
