@@ -32,7 +32,7 @@ executable('iio-sensor-proxy',
   sources,
   dependencies: deps,
   install: true,
-  install_dir: sbindir
+  install_dir: libexecdir
 )
 
 executable('fake-input-accelerometer',

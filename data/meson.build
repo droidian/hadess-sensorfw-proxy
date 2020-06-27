@@ -4,7 +4,7 @@ install_data(
 )
 
 data_conf = configuration_data()
-data_conf.set('sbindir', sbindir)
+data_conf.set('libexecdir', libexecdir)
 data_conf.set('geoclue_user', get_option('geoclue-user'))
 
 configure_file(
