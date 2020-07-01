@@ -80,6 +80,54 @@ When the accelerometer is not mounted the same way as the screen, we need
 to modify the readings from the accelerometer to make sure that the computed
 orientation matches the screen one.
 
+This is done using a “mount matrix”, a matrix that applied to the reading will
+correct that reading to match the expected orientation, whether:
+- selecting a value for an axis (with a $`1`$)
+- negating that value (with a $`-1`$)
+- ignoring that value (with a $`0`$)
+
+```math
+  \left[ {\begin{array}{ccc}
+   accel~x & accel~y & accel~z\\
+  \end{array} } \right]
+*
+  \left[ {\begin{array}{ccc}
+   x_1 & y_1 & z_1\\
+   x_2 & y_2 & z_2\\
+   x_3 & y_3 & z_3\\
+  \end{array} } \right]
+ = 
+  \left[ {\begin{array}{ccc}
+   corrected~x & corrected~y & corrected~z\\
+  \end{array} } \right]
+```
+
+For each axis of the original accelerometer reading, a corresponding line in the
+mount matrix will be used to compute which axis it should be assigned to in the
+corrected readings. For example, the first line of the matrix will define whether
+the $`accel~x`$ value will correspond to the corrected $`x`$, $`y`$ or $`z`$ axis
+(with a $`1`$ for that axis, and $`0`$ for the others), or needs to be negated
+(by setting it to $`-1`$).
+
+A matrix of $` \left[ {\begin{array}{ccc}
+   0 & 0 & 1\\
+   0 & -1 & 0\\
+   1 & 0 & 0\\
+  \end{array} } \right]
+`$ will swap the $`x`$ and $`z`$ values, and negate the $`y`$ reading.
+
+A matrix of $` \left[ {\begin{array}{ccc}
+   1 & 0 & 0\\
+   0 & 1 & 0\\
+   0 & 0 & 1\\
+  \end{array} } \right]
+`$ (the identity matrix) is the default, and will not change any of the read
+values.
+
+Each accelerometer axis reading can only be assigned (negated or not) to a
+single corrected axis reading, and each corrected axis reading can only come
+from a single accelerometer axis reading.
+
 `iio-sensor-proxy` reads this information from the device's
 `ACCEL_MOUNT_MATRIX` udev property. See [60-sensor.hwdb](https://github.com/systemd/systemd/blob/master/hwdb.d/60-sensor.hwdb)
 for details.
@@ -87,6 +135,12 @@ for details.
 For device-tree based devices, and some ACPI ones too, the `mount_matrix`,
 `in_accel_mount_matrix` and `in_mount_matrix` sysfs files can also be used
 to export that information directly from the kernel.
+
+The mount matrix format used in systemd's hwdb and the IIO subsystem is a
+one-line representation of the matrix above:
+```math
+x_1, y_1, z_1; x_2, y_2, z_2; x_3, y_3, z_3
+```
 
 Compass testing
 ---------------
