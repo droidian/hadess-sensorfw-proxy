@@ -71,6 +71,11 @@ running as ```root```.
 Accelerometer orientation
 -------------------------
 
+iio-sensor-proxy expects the accelerometer readings to match those defined
+in the [Linux IIO](https://git.kernel.org/pub/scm/linux/kernel/git/jic23/iio.git/tree/Documentation/ABI/testing/sysfs-bus-iio#n1638)
+documentation, the [Windows Integrating Motion and Orientation Sensors](https://docs.microsoft.com/en-us/windows-hardware/design/whitepapers/integrating-motion-and-orientation-sensors)
+whitepaper, and the [Android sensor documentation](https://developer.android.com/reference/android/hardware/SensorEvent).
+
 When the accelerometer is not mounted the same way as the screen, we need
 to modify the readings from the accelerometer to make sure that the computed
 orientation matches the screen one.
