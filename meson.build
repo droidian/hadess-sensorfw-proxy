@@ -1,6 +1,6 @@
 project('iio-sensor-proxy', [ 'c' ],
         version: '2.5',
-        license: 'GPLv2+',
+        license: 'GPLv3+',
         default_options: [
           'buildtype=debugoptimized',
           'warning_level=1',
