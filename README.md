@@ -65,7 +65,7 @@ If that doesn't work, please file an issue, make sure any running iio-sensor-pro
 has been stopped:
 `systemctl stop iio-sensor-proxy.service`
 and attach the output of:
-`G_MESSAGES_DEBUG=all /usr/sbin/iio-sensor-proxy`
+`G_MESSAGES_DEBUG=all /usr/libexec/iio-sensor-proxy`
 running as ```root```.
 
 Accelerometer orientation
