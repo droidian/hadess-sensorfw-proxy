@@ -27,11 +27,33 @@
 
         The detected orientation of the tablet or laptop.
         Possible values are:
-        - undefined
-        - normal
-        - bottom-up
-        - left-up
-        - right-up
+        <itemizedlist>
+          <listitem>
+            <para>
+              undefined
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              normal
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              bottom-up
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              left-up
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              right-up
+            </para>
+          </listitem>
+        </itemizedlist>
     -->
     <property name="AccelerometerOrientation" type="s" access="read"/>
 
