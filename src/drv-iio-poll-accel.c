@@ -30,25 +30,6 @@ typedef struct DrvData {
 
 static DrvData *drv_data = NULL;
 
-static int
-sysfs_get_int (GUdevDevice *dev,
-	       const char  *attribute)
-{
-	int result;
-	char *contents;
-	char *filename;
-
-	result = 0;
-	filename = g_build_filename (g_udev_device_get_sysfs_path (dev), attribute, NULL);
-	if (g_file_get_contents (filename, &contents, NULL, NULL)) {
-		result = atoi (contents);
-		g_free (contents);
-	}
-	g_free (filename);
-
-	return result;
-}
-
 static gboolean
 poll_orientation (gpointer user_data)
 {
@@ -57,9 +38,9 @@ poll_orientation (gpointer user_data)
 	AccelReadings readings;
 	AccelVec3 tmp;
 
-	accel_x = sysfs_get_int (data->dev, "in_accel_x_raw");
-	accel_y = sysfs_get_int (data->dev, "in_accel_y_raw");
-	accel_z = sysfs_get_int (data->dev, "in_accel_z_raw");
+	accel_x = g_udev_device_get_sysfs_attr_as_int_uncached (data->dev, "in_accel_x_raw");
+	accel_y = g_udev_device_get_sysfs_attr_as_int_uncached (data->dev, "in_accel_y_raw");
+	accel_z = g_udev_device_get_sysfs_attr_as_int_uncached (data->dev, "in_accel_z_raw");
 	copy_accel_scale (&readings.scale, data->scale);
 
 	g_debug ("Accel read from IIO on '%s': %d, %d, %d (scale %lf,%lf,%lf)", data->name,
