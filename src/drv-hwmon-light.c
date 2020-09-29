@@ -21,7 +21,7 @@ typedef struct DrvData {
 	ReadingsUpdateFunc  callback_func;
 	gpointer            user_data;
 
-	char               *light_path;
+	GUdevDevice        *device;
 	guint               timeout_id;
 } DrvData;
 
@@ -38,23 +38,18 @@ light_changed (gpointer user_data)
 {
 	LightReadings readings;
 	gdouble level;
-	char *contents;
-	g_autoptr(GError) error = NULL;
+	const char *contents;
+	int light1, light2;
 
-	if (g_file_get_contents (drv_data->light_path, &contents, NULL, &error)) {
-		int light1, light2;
-		if (sscanf (contents, "(%d,%d)", &light1, &light2) != 2) {
-			g_warning ("Failed to parse light level: %s", contents);
-			g_free (contents);
-			return G_SOURCE_CONTINUE;
-		}
-		level = (double) (((float) MAX(light1, light2)) / (float) MAX_LIGHT_LEVEL * 100.0f);
-		g_free (contents);
-	} else {
-		g_warning ("Failed to read input level at %s: %s",
-			   drv_data->light_path, error->message);
+	contents = g_udev_device_get_sysfs_attr_uncached (drv_data->device, "light");
+	if (!contents)
+		return G_SOURCE_CONTINUE;
+
+	if (sscanf (contents, "(%d,%d)", &light1, &light2) != 2) {
+		g_warning ("Failed to parse light level: %s", contents);
 		return G_SOURCE_CONTINUE;
 	}
+	level = (double) (((float) MAX(light1, light2)) / (float) MAX_LIGHT_LEVEL * 100.0f);
 
 	readings.level = level;
 	readings.uses_lux = FALSE;
@@ -72,8 +67,7 @@ hwmon_light_open (GUdevDevice        *device,
 	drv_data->callback_func = callback_func;
 	drv_data->user_data = user_data;
 
-	drv_data->light_path = g_build_filename (g_udev_device_get_sysfs_path (device),
-						 "light", NULL);
+	drv_data->device = g_object_ref (device);
 
 	return TRUE;
 }
@@ -104,7 +98,7 @@ static void
 hwmon_light_close (void)
 {
 	hwmon_light_set_polling (FALSE);
-	g_clear_pointer (&drv_data->light_path, g_free);
+	g_clear_object (&drv_data->device);
 	g_clear_pointer (&drv_data, g_free);
 }
 
