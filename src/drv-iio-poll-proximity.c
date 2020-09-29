@@ -33,25 +33,6 @@ typedef struct DrvData {
 
 static DrvData *drv_data = NULL;
 
-static int
-sysfs_get_int (GUdevDevice *dev,
-	      const char  *attribute)
-{
-       int result;
-       char *contents;
-       char *filename;
-
-       result = 0;
-       filename = g_build_filename (g_udev_device_get_sysfs_path (dev), attribute, NULL);
-       if (g_file_get_contents (filename, &contents, NULL, NULL)) {
-	       result = atoi (contents);
-	       g_free (contents);
-       }
-       g_free (filename);
-
-       return result;
-}
-
 static gboolean
 poll_proximity (gpointer user_data)
 {
@@ -61,7 +42,7 @@ poll_proximity (gpointer user_data)
 	gdouble near_level = data->near_level;
 
 	/* g_udev_device_get_sysfs_attr_as_int does not update when there's no event */
-	prox = sysfs_get_int (data->dev, "in_proximity_raw");
+	prox = g_udev_device_get_sysfs_attr_as_int_uncached (data->dev, "in_proximity_raw");
 	/* Use a margin so we don't trigger too often */
 	near_level *=  (data->last_level > near_level) ? PROXIMITY_WATER_MARK_LOW : PROXIMITY_WATER_MARK_HIGH;
 	readings.is_near = (prox > near_level) ? PROXIMITY_NEAR_TRUE : PROXIMITY_NEAR_FALSE;
