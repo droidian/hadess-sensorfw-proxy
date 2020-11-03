@@ -7,6 +7,7 @@ Conflicts=iio-sensor-proxy.service
 [Service]
 Type=dbus
 BusName=net.hadess.SensorProxy
+Restart=on-failure
 ExecStart=/usr/bin/hadess-sensorfw-proxy
 
 [Install]
