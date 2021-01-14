@@ -31,9 +31,8 @@ typedef struct DrvData {
 	gboolean sends_kevent;
 } DrvData;
 
-static DrvData *drv_data = NULL;
-
-static void input_accel_set_polling (gboolean state);
+static void input_accel_set_polling (SensorDevice *sensor_device,
+				     gboolean state);
 
 /* From src/linux/up-device-supply.c in UPower */
 static GUdevDevice *
@@ -119,8 +118,10 @@ input_accel_discover (GUdevDevice *device)
 #define memzero(x,l) (memset((x), 0, (l)))
 
 static void
-accelerometer_changed (void)
+accelerometer_changed (gpointer user_data)
 {
+	SensorDevice *sensor_device = user_data;
+	DrvData *drv_data = (DrvData *) sensor_device->priv;
 	struct input_absinfo abs_info;
 	int accel_x = 0, accel_y = 0, accel_z = 0;
 	int fd, r;
@@ -167,6 +168,9 @@ uevent_received (GUdevClient *client,
 		 GUdevDevice *device,
 		 gpointer     user_data)
 {
+	SensorDevice *sensor_device = user_data;
+	DrvData *drv_data = (DrvData *) sensor_device->priv;
+
 	if (g_strcmp0 (action, "change") != 0)
 		return;
 
@@ -176,33 +180,43 @@ uevent_received (GUdevClient *client,
 	if (!drv_data->sends_kevent) {
 		drv_data->sends_kevent = TRUE;
 		g_debug ("Received kevent, let's stop polling for accelerometer data on %s", drv_data->dev_path);
-		input_accel_set_polling (FALSE);
+		input_accel_set_polling (sensor_device, FALSE);
 	}
 
-	accelerometer_changed ();
+	accelerometer_changed (sensor_device);
 }
 
 static gboolean
 first_values (gpointer user_data)
 {
-	accelerometer_changed ();
+	accelerometer_changed (user_data);
 	return G_SOURCE_REMOVE;
 }
 
-static gboolean
+static SensorDevice *
 input_accel_open (GUdevDevice        *device,
 		  ReadingsUpdateFunc  callback_func,
 		  gpointer            user_data)
 {
 	const gchar * const subsystems[] = { "input", NULL };
+	SensorDevice *sensor_device;
+	DrvData *drv_data;
 
-	drv_data = g_new0 (DrvData, 1);
+	sensor_device = g_new0 (SensorDevice, 1);
+	sensor_device->priv = g_new0 (DrvData, 1);
+	drv_data = (DrvData *) sensor_device->priv;
 	drv_data->dev = g_object_ref (device);
 	drv_data->parent = g_udev_device_get_parent (drv_data->dev);
 	drv_data->dev_path = g_udev_device_get_device_file (device);
 	drv_data->name = g_udev_device_get_property (device, "NAME");
 	if (!drv_data->name)
 		drv_data->name = g_udev_device_get_property (device, "ID_MODEL");
+	if (!drv_data->name) {
+		g_autoptr(GUdevDevice) parent = NULL;
+
+		parent = g_udev_device_get_parent (device);
+		drv_data->name = g_strdup (g_udev_device_get_property (parent, "NAME"));
+	}
 	drv_data->client = g_udev_client_new (subsystems);
 	drv_data->mount_matrix = setup_mount_matrix (device);
 	drv_data->location = setup_accel_location (device);
@@ -210,23 +224,26 @@ input_accel_open (GUdevDevice        *device,
 	drv_data->user_data = user_data;
 
 	g_signal_connect (drv_data->client, "uevent",
-			  G_CALLBACK (uevent_received), NULL);
+			  G_CALLBACK (uevent_received), sensor_device);
 
-	g_idle_add (first_values, NULL);
+	g_idle_add (first_values, sensor_device);
 
-	return TRUE;
+	return sensor_device;
 }
 
 static gboolean
 read_accel_poll (gpointer user_data)
 {
-	accelerometer_changed ();
+	accelerometer_changed (user_data);
 	return G_SOURCE_CONTINUE;
 }
 
 static void
-input_accel_set_polling (gboolean state)
+input_accel_set_polling (SensorDevice *sensor_device,
+			 gboolean state)
 {
+	DrvData *drv_data = (DrvData *) sensor_device->priv;
+
 	if (drv_data->timeout_id > 0 && state)
 		return;
 	if (drv_data->timeout_id == 0 && !state)
@@ -238,20 +255,22 @@ input_accel_set_polling (gboolean state)
 	}
 
 	if (state && !drv_data->sends_kevent) {
-		drv_data->timeout_id = g_timeout_add (700, read_accel_poll, drv_data);
+		drv_data->timeout_id = g_timeout_add (700, read_accel_poll, sensor_device);
 		g_source_set_name_by_id (drv_data->timeout_id, "[input_accel_set_polling] read_accel_poll");
 	}
 }
 
 static void
-input_accel_close (void)
+input_accel_close (SensorDevice *sensor_device)
 {
+	DrvData *drv_data = (DrvData *) sensor_device->priv;
+
 	g_clear_object (&drv_data->client);
 	g_clear_object (&drv_data->dev);
 	g_clear_object (&drv_data->parent);
 	g_clear_pointer (&drv_data->mount_matrix, g_free);
 
-	g_clear_pointer (&drv_data, g_free);
+	g_clear_pointer (&sensor_device->priv, g_free);
 }
 
 SensorDriver input_accel = {

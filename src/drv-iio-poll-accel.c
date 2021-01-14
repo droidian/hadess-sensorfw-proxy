@@ -28,24 +28,23 @@ typedef struct DrvData {
 	AccelScale          scale;
 } DrvData;
 
-static DrvData *drv_data = NULL;
-
 static gboolean
 poll_orientation (gpointer user_data)
 {
-	DrvData *data = user_data;
+	SensorDevice *sensor_device = user_data;
+	DrvData *drv_data = (DrvData *) sensor_device->priv;
 	int accel_x, accel_y, accel_z;
 	AccelReadings readings;
 	AccelVec3 tmp;
 
-	accel_x = g_udev_device_get_sysfs_attr_as_int_uncached (data->dev, "in_accel_x_raw");
-	accel_y = g_udev_device_get_sysfs_attr_as_int_uncached (data->dev, "in_accel_y_raw");
-	accel_z = g_udev_device_get_sysfs_attr_as_int_uncached (data->dev, "in_accel_z_raw");
-	copy_accel_scale (&readings.scale, data->scale);
+	accel_x = g_udev_device_get_sysfs_attr_as_int_uncached (drv_data->dev, "in_accel_x_raw");
+	accel_y = g_udev_device_get_sysfs_attr_as_int_uncached (drv_data->dev, "in_accel_y_raw");
+	accel_z = g_udev_device_get_sysfs_attr_as_int_uncached (drv_data->dev, "in_accel_z_raw");
+	copy_accel_scale (&readings.scale, drv_data->scale);
 
-	g_debug ("Accel read from IIO on '%s': %d, %d, %d (scale %lf,%lf,%lf)", data->name,
+	g_debug ("Accel read from IIO on '%s': %d, %d, %d (scale %lf,%lf,%lf)", drv_data->name,
 		 accel_x, accel_y, accel_z,
-		 data->scale.x, data->scale.y, data->scale.z);
+		 drv_data->scale.x, drv_data->scale.y, drv_data->scale.z);
 
 	tmp.x = accel_x;
 	tmp.y = accel_y;
@@ -77,8 +76,11 @@ iio_poll_accel_discover (GUdevDevice *device)
 }
 
 static void
-iio_poll_accel_set_polling (gboolean state)
+iio_poll_accel_set_polling (SensorDevice *sensor_device,
+			    gboolean state)
 {
+	DrvData *drv_data = (DrvData *) sensor_device->priv;
+
 	if (drv_data->timeout_id > 0 && state)
 		return;
 	if (drv_data->timeout_id == 0 && !state)
@@ -90,19 +92,25 @@ iio_poll_accel_set_polling (gboolean state)
 	}
 
 	if (state) {
-		drv_data->timeout_id = g_timeout_add (700, poll_orientation, drv_data);
+		drv_data->timeout_id = g_timeout_add (700, poll_orientation, sensor_device);
 		g_source_set_name_by_id (drv_data->timeout_id, "[iio_poll_accel_set_polling] poll_orientation");
 	}
 }
 
-static gboolean
+static SensorDevice *
 iio_poll_accel_open (GUdevDevice        *device,
 		     ReadingsUpdateFunc  callback_func,
 		     gpointer            user_data)
 {
+
+	SensorDevice *sensor_device;
+	DrvData *drv_data;
+
 	iio_fixup_sampling_frequency (device);
 
-	drv_data = g_new0 (DrvData, 1);
+	sensor_device = g_new0 (SensorDevice, 1);
+	sensor_device->priv = g_new0 (DrvData, 1);
+	drv_data = (DrvData *) sensor_device->priv;
 	drv_data->dev = g_object_ref (device);
 	drv_data->name = g_udev_device_get_sysfs_attr (device, "name");
 	drv_data->mount_matrix = setup_mount_matrix (device);
@@ -112,15 +120,18 @@ iio_poll_accel_open (GUdevDevice        *device,
 	if (!get_accel_scale (device, &drv_data->scale))
 		reset_accel_scale (&drv_data->scale);
 
-	return TRUE;
+	return sensor_device;
 }
 
 static void
-iio_poll_accel_close (void)
+iio_poll_accel_close (SensorDevice *sensor_device)
 {
+	DrvData *drv_data = (DrvData *) sensor_device->priv;
+
 	g_clear_object (&drv_data->dev);
 	g_clear_pointer (&drv_data->mount_matrix, g_free);
-	g_clear_pointer (&drv_data, g_free);
+	g_clear_pointer (&sensor_device->priv, g_free);
+	g_free (sensor_device);
 }
 
 SensorDriver iio_poll_accel = {

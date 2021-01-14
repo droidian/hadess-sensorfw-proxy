@@ -28,8 +28,6 @@ typedef struct DrvData {
 	double              scale;
 } DrvData;
 
-static DrvData *drv_data = NULL;
-
 static gboolean
 iio_poll_light_discover (GUdevDevice *device)
 {
@@ -39,6 +37,8 @@ iio_poll_light_discover (GUdevDevice *device)
 static gboolean
 light_changed (gpointer user_data)
 {
+	SensorDevice *sensor_device = user_data;
+	DrvData *drv_data = (DrvData *) sensor_device->priv;
 	LightReadings readings;
 	gdouble level;
 	char *contents;
@@ -110,8 +110,11 @@ out:
 }
 
 static void
-iio_poll_light_set_polling (gboolean state)
+iio_poll_light_set_polling (SensorDevice *sensor_device,
+			    gboolean state)
 {
+	DrvData *drv_data = (DrvData *) sensor_device->priv;
+
 	if (drv_data->timeout_id > 0 && state)
 		return;
 	if (drv_data->timeout_id == 0 && !state)
@@ -125,30 +128,37 @@ iio_poll_light_set_polling (gboolean state)
 	if (state) {
 		drv_data->timeout_id = g_timeout_add (drv_data->interval,
 						      (GSourceFunc) light_changed,
-						      NULL);
+						      sensor_device);
 		g_source_set_name_by_id (drv_data->timeout_id, "[iio_poll_light_set_polling] light_changed");
 	}
 }
 
-static gboolean
+static SensorDevice *
 iio_poll_light_open (GUdevDevice        *device,
 		     ReadingsUpdateFunc  callback_func,
 		     gpointer            user_data)
 {
+	SensorDevice *sensor_device;
+	DrvData *drv_data;
+	g_autofree char *input_path = NULL;
+
 	iio_fixup_sampling_frequency (device);
 
-	drv_data = g_new0 (DrvData, 1);
+	input_path = get_illuminance_channel_path (device, "input");
+	if (!input_path)
+		input_path = get_illuminance_channel_path (device, "raw");
+	if (!input_path)
+		return NULL;
+
+	sensor_device = g_new0 (SensorDevice, 1);
+	sensor_device->priv = g_new0 (DrvData, 1);
+	drv_data = (DrvData *) sensor_device->priv;
 	drv_data->callback_func = callback_func;
 	drv_data->user_data = user_data;
 
 	drv_data->interval = get_interval (device);
-	drv_data->input_path = get_illuminance_channel_path (device, "input");
-	if (!drv_data->input_path)
-		drv_data->input_path = get_illuminance_channel_path (device, "raw");
-	if (!drv_data->input_path)
-		return FALSE;
 
-	if (g_str_has_prefix (drv_data->input_path, "in_illuminance0")) {
+	if (g_str_has_prefix (input_path, "in_illuminance0")) {
 		drv_data->scale = g_udev_device_get_sysfs_attr_as_double (device,
 									  "in_illuminance0_scale");
 	} else {
@@ -158,14 +168,19 @@ iio_poll_light_open (GUdevDevice        *device,
 	if (drv_data->scale == 0.0)
 		drv_data->scale = 1.0;
 
-	return TRUE;
+	drv_data->input_path = g_steal_pointer (&input_path);
+
+	return sensor_device;
 }
 
 static void
-iio_poll_light_close (void)
+iio_poll_light_close (SensorDevice *sensor_device)
 {
+	DrvData *drv_data = (DrvData *) sensor_device->priv;
+
 	g_clear_pointer (&drv_data->input_path, g_free);
-	g_clear_pointer (&drv_data, g_free);
+	g_clear_pointer (&sensor_device->priv, g_free);
+	g_free (sensor_device);
 }
 
 SensorDriver iio_poll_light = {

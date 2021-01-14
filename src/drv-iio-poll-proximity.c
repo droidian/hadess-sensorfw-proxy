@@ -31,23 +31,22 @@ typedef struct DrvData {
 	gint                last_level;
 } DrvData;
 
-static DrvData *drv_data = NULL;
-
 static gboolean
 poll_proximity (gpointer user_data)
 {
-	DrvData *data = user_data;
+	SensorDevice *sensor_device = user_data;
+	DrvData *drv_data = (DrvData *) sensor_device->priv;
 	ProximityReadings readings;
 	gint prox;
-	gdouble near_level = data->near_level;
+	gdouble near_level = drv_data->near_level;
 
 	/* g_udev_device_get_sysfs_attr_as_int does not update when there's no event */
-	prox = g_udev_device_get_sysfs_attr_as_int_uncached (data->dev, "in_proximity_raw");
+	prox = g_udev_device_get_sysfs_attr_as_int_uncached (drv_data->dev, "in_proximity_raw");
 	/* Use a margin so we don't trigger too often */
-	near_level *=  (data->last_level > near_level) ? PROXIMITY_WATER_MARK_LOW : PROXIMITY_WATER_MARK_HIGH;
+	near_level *=  (drv_data->last_level > near_level) ? PROXIMITY_WATER_MARK_LOW : PROXIMITY_WATER_MARK_HIGH;
 	readings.is_near = (prox > near_level) ? PROXIMITY_NEAR_TRUE : PROXIMITY_NEAR_FALSE;
-	g_debug ("Proximity read from IIO on '%s': %d/%f, near: %d", data->name, prox, near_level, readings.is_near);
-	data->last_level = prox;
+	g_debug ("Proximity read from IIO on '%s': %d/%f, near: %d", drv_data->name, prox, near_level, readings.is_near);
+	drv_data->last_level = prox;
 
 	drv_data->callback_func (&iio_poll_proximity, (gpointer) &readings, drv_data->user_data);
 
@@ -61,8 +60,11 @@ iio_poll_proximity_discover (GUdevDevice *device)
 }
 
 static void
-iio_poll_proximity_set_polling (gboolean state)
+iio_poll_proximity_set_polling (SensorDevice *sensor_device,
+				gboolean state)
 {
+	DrvData *drv_data = (DrvData *) sensor_device->priv;
+
 	if (drv_data->timeout_id > 0 && state)
 		return;
 	if (drv_data->timeout_id == 0 && !state)
@@ -70,7 +72,7 @@ iio_poll_proximity_set_polling (gboolean state)
 
 	g_clear_handle_id (&drv_data->timeout_id, g_source_remove);
 	if (state) {
-		drv_data->timeout_id = g_timeout_add (700, poll_proximity, drv_data);
+		drv_data->timeout_id = g_timeout_add (700, poll_proximity, sensor_device);
 		g_source_set_name_by_id (drv_data->timeout_id, "[iio_poll_proximity_set_polling] poll_proximity");
 	}
 }
@@ -95,33 +97,40 @@ get_near_level (GUdevDevice *device)
 }
 
 
-static gboolean
+static SensorDevice *
 iio_poll_proximity_open (GUdevDevice        *device,
 			 ReadingsUpdateFunc  callback_func,
 			 gpointer	     user_data)
 {
-	iio_fixup_sampling_frequency (device);
+	SensorDevice *sensor_device;
+	DrvData *drv_data;
+	int near_level;
 
-	drv_data = g_new0 (DrvData, 1);
+	iio_fixup_sampling_frequency (device);
+	near_level = get_near_level (device);
+	if (!near_level)
+		return FALSE;
+
+	sensor_device = g_new0 (SensorDevice, 1);
+	sensor_device->priv = g_new0 (DrvData, 1);
+	drv_data = (DrvData *) sensor_device->priv;
 	drv_data->dev = g_object_ref (device);
 	drv_data->name = g_udev_device_get_sysfs_attr (device, "name");
 	drv_data->callback_func = callback_func;
 	drv_data->user_data = user_data;
-	drv_data->near_level = get_near_level (device);
+	drv_data->near_level = near_level;
 
-	if (!drv_data->near_level) {
-		g_free (drv_data);
-		return FALSE;
-	}
-
-	return TRUE;
+	return sensor_device;
 }
 
 static void
-iio_poll_proximity_close (void)
+iio_poll_proximity_close (SensorDevice *sensor_device)
 {
+	DrvData *drv_data = (DrvData *) sensor_device->priv;
+
 	g_clear_object (&drv_data->dev);
-	g_clear_pointer (&drv_data, g_free);
+	g_clear_pointer (&sensor_device->priv, g_free);
+	g_free (sensor_device);
 }
 
 SensorDriver iio_poll_proximity = {

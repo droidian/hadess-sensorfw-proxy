@@ -38,9 +38,10 @@ typedef struct {
 	guint name_id;
 	int ret;
 
-	SensorDriver *drivers[NUM_SENSOR_TYPES];
-	GUdevDevice  *devices[NUM_SENSOR_TYPES];
-	GHashTable   *clients[NUM_SENSOR_TYPES]; /* key = D-Bus name, value = watch ID */
+	SensorDriver      *drivers[NUM_SENSOR_TYPES];
+	SensorDevice      *devices[NUM_SENSOR_TYPES];
+	GUdevDevice       *udev_devices[NUM_SENSOR_TYPES];
+	GHashTable        *clients[NUM_SENSOR_TYPES]; /* key = D-Bus name, value = watch ID */
 
 	/* Accelerometer */
 	OrientationUp previous_orientation;
@@ -90,6 +91,7 @@ driver_type_to_str (DriverType type)
 
 #define DRIVER_FOR_TYPE(driver_type) data->drivers[driver_type]
 #define DEVICE_FOR_TYPE(driver_type) data->devices[driver_type]
+#define UDEV_DEVICE_FOR_TYPE(driver_type) data->udev_devices[driver_type]
 
 static void sensor_changes (GUdevClient *client,
 			    gchar       *action,
@@ -123,13 +125,13 @@ find_sensors (GUdevClient *client,
 
 		for (i = 0; i < G_N_ELEMENTS(drivers); i++) {
 			SensorDriver *driver = (SensorDriver *) drivers[i];
-			if (!driver_type_exists(data, driver->type) &&
+			if (!driver_type_exists (data, driver->type) &&
 			    driver_discover (driver, dev)) {
 				g_debug ("Found device %s of type %s at %s",
 					 g_udev_device_get_sysfs_path (dev),
 					 driver_type_to_str (driver->type),
 					 driver->name);
-				DEVICE_FOR_TYPE(driver->type) = g_object_ref (dev);
+				UDEV_DEVICE_FOR_TYPE(driver->type) = g_object_ref (dev);
 				DRIVER_FOR_TYPE(driver->type) = (SensorDriver *) driver;
 
 				found = TRUE;
@@ -333,8 +335,10 @@ client_release (SensorData            *data,
 	g_hash_table_remove (ht, sender);
 
 	if (driver_type_exists (data, driver_type) &&
-	    g_hash_table_size (ht) == 0)
-		driver_set_polling (DRIVER_FOR_TYPE(driver_type), FALSE);
+	    g_hash_table_size (ht) == 0) {
+		SensorDevice *sensor_device = DEVICE_FOR_TYPE(driver_type);
+		driver_set_polling (sensor_device, FALSE);
+	}
 }
 
 static void
@@ -393,8 +397,10 @@ handle_generic_method_call (SensorData            *data,
 
 		/* No other clients for this sensor? Start it */
 		if (driver_type_exists (data, driver_type) &&
-		    g_hash_table_size (ht) == 0)
-			driver_set_polling (DRIVER_FOR_TYPE(driver_type), TRUE);
+		    g_hash_table_size (ht) == 0) {
+			SensorDevice *sensor_device = DEVICE_FOR_TYPE(driver_type);
+			driver_set_polling (sensor_device, TRUE);
+		}
 
 		watch_id = g_bus_watch_name_on_connection (data->connection,
 							   sender,
@@ -593,16 +599,22 @@ name_acquired_handler (GDBusConnection *connection,
 			  G_CALLBACK (sensor_changes), data);
 
 	for (i = 0; i < NUM_SENSOR_TYPES; i++) {
+		SensorDevice *sensor_device;
+
 		data->clients[i] = create_clients_hash_table ();
 
 		if (!driver_type_exists (data, i))
 			continue;
 
-		if (!driver_open (DRIVER_FOR_TYPE(i), DEVICE_FOR_TYPE(i),
-				  driver_type_to_callback_func (data->drivers[i]->type), data)) {
+		sensor_device = driver_open (DRIVER_FOR_TYPE(i), UDEV_DEVICE_FOR_TYPE(i),
+					     driver_type_to_callback_func (data->drivers[i]->type), data);
+		if (!sensor_device) {
 			DRIVER_FOR_TYPE(i) = NULL;
-			g_clear_object (&DEVICE_FOR_TYPE(i));
+			g_clear_object (&UDEV_DEVICE_FOR_TYPE(i));
+			continue;
 		}
+
+		DEVICE_FOR_TYPE(i) = sensor_device;
 	}
 
 	if (!any_sensors_left (data))
@@ -787,8 +799,8 @@ free_sensor_data (SensorData *data)
 
 	for (i = 0; i < NUM_SENSOR_TYPES; i++) {
 		if (driver_type_exists (data, i))
-			driver_close (DRIVER_FOR_TYPE(i));
-		g_clear_object (&DEVICE_FOR_TYPE(i));
+			driver_close (DEVICE_FOR_TYPE(i));
+		g_clear_object (&UDEV_DEVICE_FOR_TYPE(i));
 		g_clear_pointer (&data->clients[i], g_hash_table_unref);
 	}
 
@@ -812,7 +824,7 @@ sensor_changes (GUdevClient *client,
 
 	if (g_strcmp0 (action, "remove") == 0) {
 		for (i = 0; i < NUM_SENSOR_TYPES; i++) {
-			GUdevDevice *dev = DEVICE_FOR_TYPE(i);
+			GUdevDevice *dev = UDEV_DEVICE_FOR_TYPE(i);
 
 			if (!dev)
 				continue;
@@ -822,7 +834,9 @@ sensor_changes (GUdevClient *client,
 					 driver_type_to_str (i),
 					 g_udev_device_get_sysfs_path (dev));
 
-				g_clear_object (&DEVICE_FOR_TYPE(i));
+				g_clear_object (&UDEV_DEVICE_FOR_TYPE(i));
+				driver_close (DEVICE_FOR_TYPE(i));
+				DEVICE_FOR_TYPE(i) = NULL;
 				DRIVER_FOR_TYPE(i) = NULL;
 
 				g_clear_pointer (&data->clients[i], g_hash_table_unref);
@@ -848,14 +862,16 @@ sensor_changes (GUdevClient *client,
 						 driver_type_to_callback_func (driver->type), data)) {
 					GHashTable *ht;
 
-					DEVICE_FOR_TYPE(driver->type) = g_object_ref (device);
+					UDEV_DEVICE_FOR_TYPE(driver->type) = g_object_ref (device);
 					DRIVER_FOR_TYPE(driver->type) = (SensorDriver *) driver;
 					send_driver_changed_dbus_event (data, driver->type);
 
 					ht = data->clients[driver->type];
 
-					if (g_hash_table_size (ht) > 0)
-						driver_set_polling (DRIVER_FOR_TYPE(driver->type), TRUE);
+					if (g_hash_table_size (ht) > 0) {
+						SensorDevice *sensor_device = DEVICE_FOR_TYPE(driver->type);
+						driver_set_polling (sensor_device, TRUE);
+					}
 				}
 				break;
 			}

@@ -25,8 +25,6 @@ typedef struct DrvData {
 	guint               timeout_id;
 } DrvData;
 
-static DrvData *drv_data = NULL;
-
 static gboolean
 hwmon_light_discover (GUdevDevice *device)
 {
@@ -36,6 +34,8 @@ hwmon_light_discover (GUdevDevice *device)
 static gboolean
 light_changed (gpointer user_data)
 {
+	SensorDevice *sensor_device = user_data;
+	DrvData *drv_data = (DrvData *) sensor_device->priv;
 	LightReadings readings;
 	gdouble level;
 	const char *contents;
@@ -58,23 +58,31 @@ light_changed (gpointer user_data)
 	return G_SOURCE_CONTINUE;
 }
 
-static gboolean
+static SensorDevice *
 hwmon_light_open (GUdevDevice        *device,
 		 ReadingsUpdateFunc  callback_func,
 		 gpointer            user_data)
 {
-	drv_data = g_new0 (DrvData, 1);
+	SensorDevice *sensor_device;
+	DrvData *drv_data;
+
+	sensor_device = g_new0 (SensorDevice, 1);
+	sensor_device->priv = g_new0 (DrvData, 1);
+	drv_data = (DrvData *) sensor_device->priv;
 	drv_data->callback_func = callback_func;
 	drv_data->user_data = user_data;
 
 	drv_data->device = g_object_ref (device);
 
-	return TRUE;
+	return sensor_device;
 }
 
 static void
-hwmon_light_set_polling (gboolean state)
+hwmon_light_set_polling (SensorDevice *sensor_device,
+			 gboolean state)
 {
+	DrvData *drv_data = (DrvData *) sensor_device->priv;
+
 	if (drv_data->timeout_id > 0 && state)
 		return;
 	if (drv_data->timeout_id == 0 && !state)
@@ -86,19 +94,22 @@ hwmon_light_set_polling (gboolean state)
 	}
 
 	if (state) {
-		drv_data->timeout_id = g_timeout_add (DEFAULT_POLL_TIME, (GSourceFunc) light_changed, NULL);
+		drv_data->timeout_id = g_timeout_add (DEFAULT_POLL_TIME, (GSourceFunc) light_changed, sensor_device);
 		g_source_set_name_by_id (drv_data->timeout_id, "[hwmon_light_set_polling] light_changed");
 
 		/* And send a reading straight away */
-		light_changed (NULL);
+		light_changed (sensor_device);
 	}
 }
 
 static void
-hwmon_light_close (void)
+hwmon_light_close (SensorDevice *sensor_device)
 {
+	DrvData *drv_data = (DrvData *) sensor_device->priv;
+
 	g_clear_object (&drv_data->device);
-	g_clear_pointer (&drv_data, g_free);
+	g_clear_pointer (&sensor_device->priv, g_free);
+	g_free (sensor_device);
 }
 
 SensorDriver hwmon_light = {

@@ -29,8 +29,6 @@ typedef struct {
 	BufferDrvData *buffer_data;
 } DrvData;
 
-static DrvData *drv_data = NULL;
-
 static int
 process_scan (IIOSensorData data, DrvData *or_data)
 {
@@ -153,9 +151,10 @@ get_trigger_name (GUdevDevice *device)
 static gboolean
 read_orientation (gpointer user_data)
 {
-	DrvData *data = user_data;
+	SensorDevice *sensor_device = user_data;
+	DrvData *drv_data = (DrvData *) sensor_device->priv;
 
-	prepare_output (data, data->buffer_data->dev_dir_name, data->buffer_data->trigger_name);
+	prepare_output (drv_data, drv_data->buffer_data->dev_dir_name, drv_data->buffer_data->trigger_name);
 
 	return G_SOURCE_CONTINUE;
 }
@@ -179,8 +178,11 @@ iio_buffer_accel_discover (GUdevDevice *device)
 }
 
 static void
-iio_buffer_accel_set_polling (gboolean state)
+iio_buffer_accel_set_polling (SensorDevice *sensor_device,
+			      gboolean state)
 {
+	DrvData *drv_data = (DrvData *) sensor_device->priv;
+
 	if (drv_data->timeout_id > 0 && state)
 		return;
 	if (drv_data->timeout_id == 0 && !state)
@@ -192,34 +194,34 @@ iio_buffer_accel_set_polling (gboolean state)
 	}
 
 	if (state) {
-		drv_data->timeout_id = g_timeout_add (700, read_orientation, drv_data);
+		drv_data->timeout_id = g_timeout_add (700, read_orientation, sensor_device);
 		g_source_set_name_by_id (drv_data->timeout_id, "[iio_buffer_accel_set_polling] read_orientation");
 	}
 }
 
-static gboolean
+static SensorDevice *
 iio_buffer_accel_open (GUdevDevice        *device,
 		       ReadingsUpdateFunc  callback_func,
 		       gpointer            user_data)
 {
-	char *trigger_name;
-
-	drv_data = g_new0 (DrvData, 1);
+	SensorDevice *sensor_device;
+	DrvData *drv_data;
+	g_autofree char *trigger_name = NULL;
+	BufferDrvData *buffer_data;
 
 	/* Get the trigger name, and build the channels from that */
 	trigger_name = get_trigger_name (device);
-	if (!trigger_name) {
-		g_clear_pointer (&drv_data, g_free);
-		return FALSE;
-	}
-	drv_data->buffer_data = buffer_drv_data_new (device, trigger_name);
-	g_free (trigger_name);
+	if (!trigger_name)
+		return NULL;
 
-	if (!drv_data->buffer_data) {
-		g_clear_pointer (&drv_data, g_free);
-		return FALSE;
-	}
+	buffer_data = buffer_drv_data_new (device, trigger_name);
+	if (!buffer_data)
+		return NULL;
 
+	sensor_device = g_new0 (SensorDevice, 1);
+	sensor_device->priv = g_new0 (DrvData, 1);
+	drv_data = (DrvData *) sensor_device->priv;
+	drv_data->buffer_data = buffer_data;
 	drv_data->mount_matrix = setup_mount_matrix (device);
 	drv_data->location = setup_accel_location (device);
 	drv_data->dev = g_object_ref (device);
@@ -231,16 +233,19 @@ iio_buffer_accel_open (GUdevDevice        *device,
 	drv_data->callback_func = callback_func;
 	drv_data->user_data = user_data;
 
-	return TRUE;
+	return sensor_device;
 }
 
 static void
-iio_buffer_accel_close (void)
+iio_buffer_accel_close (SensorDevice *sensor_device)
 {
+	DrvData *drv_data = (DrvData *) sensor_device->priv;
+
 	g_clear_pointer (&drv_data->buffer_data, buffer_drv_data_free);
 	g_clear_object (&drv_data->dev);
 	g_clear_pointer (&drv_data->mount_matrix, g_free);
-	g_clear_pointer (&drv_data, g_free);
+	g_clear_pointer (&sensor_device->priv, g_free);
+	g_free (sensor_device);
 }
 
 SensorDriver iio_buffer_accel = {

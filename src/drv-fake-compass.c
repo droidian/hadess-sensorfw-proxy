@@ -23,8 +23,6 @@ typedef struct DrvData {
 	guint              timeout_id;
 } DrvData;
 
-static DrvData *drv_data = NULL;
-
 static gboolean
 fake_compass_discover (GUdevDevice *device)
 {
@@ -45,6 +43,8 @@ fake_compass_discover (GUdevDevice *device)
 static gboolean
 compass_changed (gpointer user_data)
 {
+	SensorDevice *sensor_device = user_data;
+	DrvData *drv_data = (DrvData *) sensor_device->priv;
 	static gdouble heading = 0;
 	CompassReadings readings;
 
@@ -62,27 +62,38 @@ compass_changed (gpointer user_data)
 static gboolean
 first_values (gpointer user_data)
 {
-	compass_changed (NULL);
-	drv_data->timeout_id = g_timeout_add_seconds (1, (GSourceFunc) compass_changed, NULL);
+	SensorDevice *sensor_device = user_data;
+	DrvData *drv_data = (DrvData *) sensor_device->priv;
+
+	compass_changed (sensor_device);
+	drv_data->timeout_id = g_timeout_add_seconds (1, (GSourceFunc) compass_changed, sensor_device);
 	g_source_set_name_by_id (drv_data->timeout_id, "[fake_compass_set_polling] compass_changed");
 	return G_SOURCE_REMOVE;
 }
 
-static gboolean
+static SensorDevice *
 fake_compass_open (GUdevDevice        *device,
 		   ReadingsUpdateFunc  callback_func,
 		   gpointer            user_data)
 {
-	drv_data = g_new0 (DrvData, 1);
+	SensorDevice *sensor_device;
+	DrvData *drv_data;
+
+	sensor_device = g_new0 (SensorDevice, 1);
+	sensor_device->priv = g_new0 (DrvData, 1);
+	drv_data = (DrvData *) sensor_device->priv;
 	drv_data->callback_func = callback_func;
 	drv_data->user_data = user_data;
 
-	return TRUE;
+	return sensor_device;
 }
 
 static void
-fake_compass_set_polling (gboolean state)
+fake_compass_set_polling (SensorDevice *sensor_device,
+			  gboolean      state)
 {
+	DrvData *drv_data = (DrvData *) sensor_device->priv;
+
 	if (drv_data->timeout_id > 0 && state)
 		return;
 	if (drv_data->timeout_id == 0 && !state)
@@ -94,15 +105,16 @@ fake_compass_set_polling (gboolean state)
 	}
 
 	if (state) {
-		drv_data->timeout_id = g_idle_add (first_values, NULL);
+		drv_data->timeout_id = g_idle_add (first_values, sensor_device);
 		g_source_set_name_by_id (drv_data->timeout_id, "[fake_compass_set_polling] first_values");
 	}
 }
 
 static void
-fake_compass_close (void)
+fake_compass_close (SensorDevice *sensor_device)
 {
-	g_clear_pointer (&drv_data, g_free);
+	g_clear_pointer (&sensor_device->priv, g_free);
+	g_free (sensor_device);
 }
 
 SensorDriver fake_compass = {

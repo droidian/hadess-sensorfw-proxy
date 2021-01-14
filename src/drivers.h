@@ -72,16 +72,24 @@ typedef void (*ReadingsUpdateFunc) (SensorDriver *driver,
 				    gpointer      readings,
 				    gpointer      user_data);
 
+typedef struct SensorDevice SensorDevice;
+
 struct SensorDriver {
 	const char             *name;
 	DriverType              type;
 
-	gboolean (*discover)    (GUdevDevice        *device);
-	gboolean (*open)        (GUdevDevice        *device,
-			         ReadingsUpdateFunc  callback_func,
-			         gpointer            user_data);
-	void     (*set_polling) (gboolean            state);
-	void     (*close)       (void);
+	gboolean       (*discover)    (GUdevDevice        *device);
+	SensorDevice * (*open)        (GUdevDevice        *device,
+				       ReadingsUpdateFunc  callback_func,
+				       gpointer            user_data);
+	void           (*set_polling) (SensorDevice       *device,
+				       gboolean            state);
+	void           (*close)       (SensorDevice       *device);
+};
+
+struct SensorDevice {
+	struct SensorDriver *drv;
+	gpointer priv;
 };
 
 static inline gboolean
@@ -101,41 +109,52 @@ driver_discover (SensorDriver *driver,
 	return (setup_accel_location (device) == ACCEL_LOCATION_DISPLAY);
 }
 
-static inline gboolean
+static inline SensorDevice *
 driver_open (SensorDriver       *driver,
 	     GUdevDevice        *device,
 	     ReadingsUpdateFunc  callback_func,
 	     gpointer            user_data)
 {
-	g_return_val_if_fail (driver, FALSE);
-	g_return_val_if_fail (driver->open, FALSE);
-	g_return_val_if_fail (device, FALSE);
-	g_return_val_if_fail (callback_func, FALSE);
+	SensorDevice *sensor_device;
 
-	return driver->open (device, callback_func, user_data);
+	g_return_val_if_fail (driver, NULL);
+	g_return_val_if_fail (driver->open, NULL);
+	g_return_val_if_fail (device, NULL);
+	g_return_val_if_fail (callback_func, NULL);
+
+	sensor_device = driver->open (device, callback_func, user_data);
+	if (!sensor_device)
+		return NULL;
+	sensor_device->drv = driver;
+	return sensor_device;
 }
 
 static inline void
-driver_set_polling (SensorDriver *driver,
+driver_set_polling (SensorDevice *sensor_device,
 		    gboolean      state)
 {
+	SensorDriver *driver;
+
+	g_return_if_fail (sensor_device);
+	driver = sensor_device->drv;
 	g_return_if_fail (driver);
 
 	if (!driver->set_polling)
 		return;
 
-	driver->set_polling (state);
+	driver->set_polling (sensor_device, state);
 }
 
 static inline void
-driver_close (SensorDriver *driver)
+driver_close (SensorDevice *sensor_device)
 {
-	g_return_if_fail (driver);
+	SensorDriver *driver;
+
+	g_return_if_fail (sensor_device);
+	driver_set_polling (sensor_device, FALSE);
+	driver = sensor_device->drv;
 	g_return_if_fail (driver->close);
-
-	driver_set_polling (driver, FALSE);
-
-	driver->close ();
+	driver->close (sensor_device);
 }
 
 extern SensorDriver iio_buffer_accel;
