@@ -7,6 +7,7 @@
  *
  */
 
+#include <locale.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -618,9 +619,11 @@ bail:
 }
 
 static gboolean
-setup_dbus (SensorData *data)
+setup_dbus (SensorData *data,
+	    gboolean    replace)
 {
 	GBytes *bytes;
+	GBusNameOwnerFlags flags;
 
 	bytes = g_resources_lookup_data ("/net/hadess/SensorProxy/net.hadess.SensorProxy.xml",
 					 G_RESOURCE_LOOKUP_FLAGS_NONE,
@@ -629,9 +632,13 @@ setup_dbus (SensorData *data)
 	g_bytes_unref (bytes);
 	g_assert (data->introspection_data != NULL);
 
+	flags = G_BUS_NAME_OWNER_FLAGS_ALLOW_REPLACEMENT;
+	if (replace)
+		flags |= G_BUS_NAME_OWNER_FLAGS_REPLACE;
+
 	data->name_id = g_bus_own_name (G_BUS_TYPE_SYSTEM,
 					SENSOR_PROXY_DBUS_NAME,
-					G_BUS_NAME_OWNER_FLAGS_NONE,
+					flags,
 					bus_acquired_handler,
 					name_acquired_handler,
 					name_lost_handler,
@@ -859,14 +866,36 @@ sensor_changes (GUdevClient *client,
 int main (int argc, char **argv)
 {
 	SensorData *data;
+	g_autoptr(GOptionContext) option_context = NULL;
+	g_autoptr(GError) error = NULL;
+	gboolean verbose = FALSE;
+	gboolean replace = FALSE;
+	const GOptionEntry options[] = {
+		{ "verbose", 'v', 0, G_OPTION_ARG_NONE, &verbose, "Show extra debugging information", NULL },
+		{ "replace", 'r', 0, G_OPTION_ARG_NONE, &replace, "Replace the running instance of power-profiles-daemon", NULL },
+		{ NULL}
+	};
 	int ret = 0;
+
+	setlocale (LC_ALL, "");
+	option_context = g_option_context_new ("");
+	g_option_context_add_main_entries (option_context, options, NULL);
+
+	ret = g_option_context_parse (option_context, &argc, &argv, &error);
+	if (!ret) {
+		g_print ("Failed to parse arguments: %s\n", error->message);
+		return EXIT_FAILURE;
+	}
+
+	if (verbose)
+		g_setenv ("G_MESSAGES_DEBUG", "all", TRUE);
 
 	data = g_new0 (SensorData, 1);
 	data->previous_orientation = ORIENTATION_UNDEFINED;
 	data->uses_lux = TRUE;
 
 	/* Set up D-Bus */
-	setup_dbus (data);
+	setup_dbus (data, replace);
 
 	data->loop = g_main_loop_new (NULL, TRUE);
 	g_main_loop_run (data->loop);
