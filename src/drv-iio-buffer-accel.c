@@ -247,7 +247,6 @@ iio_buffer_accel_close (void)
 SensorDriver iio_buffer_accel = {
 	.name = "IIO Buffer accelerometer",
 	.type = DRIVER_TYPE_ACCEL,
-	.specific_type = DRIVER_TYPE_ACCEL_IIO,
 
 	.discover = iio_buffer_accel_discover,
 	.open = iio_buffer_accel_open,

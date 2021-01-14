@@ -20,8 +20,6 @@ typedef enum {
 } DriverType;
 
 /* Driver types */
-typedef guint DriverSpecificType;
-
 typedef enum {
 	DRIVER_TYPE_ACCEL_IIO,
 	DRIVER_TYPE_ACCEL_INPUT
@@ -77,7 +75,6 @@ typedef void (*ReadingsUpdateFunc) (SensorDriver *driver,
 struct SensorDriver {
 	const char             *name;
 	DriverType              type;
-	DriverSpecificType      specific_type;
 
 	gboolean (*discover)    (GUdevDevice        *device);
 	gboolean (*open)        (GUdevDevice        *device,

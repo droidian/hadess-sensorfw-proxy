@@ -109,7 +109,6 @@ fake_compass_close (void)
 SensorDriver fake_compass = {
 	.name = "Fake compass",
 	.type = DRIVER_TYPE_COMPASS,
-	.specific_type = DRIVER_TYPE_COMPASS_FAKE,
 
 	.discover = fake_compass_discover,
 	.open = fake_compass_open,

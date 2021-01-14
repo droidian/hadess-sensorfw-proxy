@@ -215,7 +215,6 @@ iio_buffer_compass_close (void)
 SensorDriver iio_buffer_compass = {
 	.name = "IIO Buffer Compass",
 	.type = DRIVER_TYPE_COMPASS,
-	.specific_type = DRIVER_TYPE_COMPASS_IIO,
 
 	.discover = iio_buffer_compass_discover,
 	.open = iio_buffer_compass_open,

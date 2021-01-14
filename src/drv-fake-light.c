@@ -109,7 +109,6 @@ fake_light_close (void)
 SensorDriver fake_light = {
 	.name = "Fake light",
 	.type = DRIVER_TYPE_LIGHT,
-	.specific_type = DRIVER_TYPE_LIGHT_FAKE,
 
 	.discover = fake_light_discover,
 	.open = fake_light_open,

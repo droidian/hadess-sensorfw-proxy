@@ -220,7 +220,6 @@ iio_buffer_light_close (void)
 SensorDriver iio_buffer_light = {
 	.name = "IIO Buffer Light sensor",
 	.type = DRIVER_TYPE_LIGHT,
-	.specific_type = DRIVER_TYPE_LIGHT_IIO,
 
 	.discover = iio_buffer_light_discover,
 	.open = iio_buffer_light_open,
