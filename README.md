@@ -61,11 +61,9 @@ or the accelerometer. Note that compass changes are only available to GeoClue
 but if you need to ensure that GeoClue is getting correct data you can run:
 `su -s /bin/sh geoclue -c monitor-sensor`
 
-If that doesn't work, please file an issue, make sure any running iio-sensor-proxy
-has been stopped:
-`systemctl stop iio-sensor-proxy.service`
-and attach the output of:
-`G_MESSAGES_DEBUG=all /usr/libexec/iio-sensor-proxy`
+If that doesn't work, please file an issue, make sure iio-sensor-proxy is new
+enough and attach the output of:
+`/usr/libexec/iio-sensor-proxy -v -r`
 running as ```root```.
 
 Accelerometer orientation
