@@ -102,7 +102,6 @@ fake_compass_set_polling (gboolean state)
 static void
 fake_compass_close (void)
 {
-	fake_compass_set_polling (FALSE);
 	g_clear_pointer (&drv_data, g_free);
 }
 

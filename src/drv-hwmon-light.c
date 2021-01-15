@@ -97,7 +97,6 @@ hwmon_light_set_polling (gboolean state)
 static void
 hwmon_light_close (void)
 {
-	hwmon_light_set_polling (FALSE);
 	g_clear_object (&drv_data->device);
 	g_clear_pointer (&drv_data, g_free);
 }

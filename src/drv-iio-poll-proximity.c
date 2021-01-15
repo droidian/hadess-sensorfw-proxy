@@ -120,7 +120,6 @@ iio_poll_proximity_open (GUdevDevice        *device,
 static void
 iio_poll_proximity_close (void)
 {
-	iio_poll_proximity_set_polling (FALSE);
 	g_clear_object (&drv_data->dev);
 	g_clear_pointer (&drv_data, g_free);
 }

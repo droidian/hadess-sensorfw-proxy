@@ -164,7 +164,6 @@ iio_poll_light_open (GUdevDevice        *device,
 static void
 iio_poll_light_close (void)
 {
-	iio_poll_light_set_polling (FALSE);
 	g_clear_pointer (&drv_data->input_path, g_free);
 	g_clear_pointer (&drv_data, g_free);
 }

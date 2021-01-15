@@ -206,7 +206,6 @@ iio_buffer_compass_set_polling (gboolean state)
 static void
 iio_buffer_compass_close (void)
 {
-	iio_buffer_compass_set_polling (FALSE);
 	g_clear_pointer (&drv_data->buffer_data, buffer_drv_data_free);
 	g_clear_object (&drv_data->dev);
 	g_clear_pointer (&drv_data, g_free);

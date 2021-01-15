@@ -118,7 +118,6 @@ iio_poll_accel_open (GUdevDevice        *device,
 static void
 iio_poll_accel_close (void)
 {
-	iio_poll_accel_set_polling (FALSE);
 	g_clear_object (&drv_data->dev);
 	g_clear_pointer (&drv_data->mount_matrix, g_free);
 	g_clear_pointer (&drv_data, g_free);

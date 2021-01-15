@@ -102,7 +102,6 @@ fake_light_set_polling (gboolean state)
 static void
 fake_light_close (void)
 {
-	fake_light_set_polling (FALSE);
 	g_clear_pointer (&drv_data, g_free);
 }
 

@@ -133,6 +133,8 @@ driver_close (SensorDriver *driver)
 	g_return_if_fail (driver);
 	g_return_if_fail (driver->close);
 
+	driver_set_polling (driver, FALSE);
+
 	driver->close ();
 }
 

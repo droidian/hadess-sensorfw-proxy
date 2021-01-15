@@ -246,7 +246,6 @@ input_accel_set_polling (gboolean state)
 static void
 input_accel_close (void)
 {
-	input_accel_set_polling (FALSE);
 	g_clear_object (&drv_data->client);
 	g_clear_object (&drv_data->dev);
 	g_clear_object (&drv_data->parent);
