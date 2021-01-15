@@ -11,6 +11,9 @@ variables:
                 gtk3-devel
                 meson
                 git
+                python3-gobject
+                python3-dbusmock
+                umockdev
 
 build_stable:
   before_script:
