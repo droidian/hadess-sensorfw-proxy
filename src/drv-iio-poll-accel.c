@@ -19,8 +19,6 @@
 
 typedef struct DrvData {
 	guint               timeout_id;
-	ReadingsUpdateFunc  callback_func;
-	gpointer            user_data;
 	GUdevDevice        *dev;
 	const char         *name;
 	AccelVec3          *mount_matrix;
@@ -58,7 +56,7 @@ poll_orientation (gpointer user_data)
 	readings.accel_y = tmp.y;
 	readings.accel_z = tmp.z;
 
-	drv_data->callback_func (&iio_poll_accel, (gpointer) &readings, drv_data->user_data);
+	sensor_device->callback_func (&iio_poll_accel, (gpointer) &readings, sensor_device->user_data);
 
 	return G_SOURCE_CONTINUE;
 }
@@ -98,9 +96,7 @@ iio_poll_accel_set_polling (SensorDevice *sensor_device,
 }
 
 static SensorDevice *
-iio_poll_accel_open (GUdevDevice        *device,
-		     ReadingsUpdateFunc  callback_func,
-		     gpointer            user_data)
+iio_poll_accel_open (GUdevDevice *device)
 {
 
 	SensorDevice *sensor_device;
@@ -115,8 +111,6 @@ iio_poll_accel_open (GUdevDevice        *device,
 	drv_data->name = g_udev_device_get_sysfs_attr (device, "name");
 	drv_data->mount_matrix = setup_mount_matrix (device);
 	drv_data->location = setup_accel_location (device);
-	drv_data->callback_func = callback_func;
-	drv_data->user_data = user_data;
 	if (!get_accel_scale (device, &drv_data->scale))
 		reset_accel_scale (&drv_data->scale);
 

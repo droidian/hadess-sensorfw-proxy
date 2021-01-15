@@ -19,8 +19,6 @@
 
 typedef struct DrvData {
 	guint              timeout_id;
-	ReadingsUpdateFunc callback_func;
-	gpointer           user_data;
 
 	GUdevClient *client;
 	GUdevDevice *dev, *parent;
@@ -159,7 +157,7 @@ accelerometer_changed (gpointer user_data)
 	readings.accel_y = tmp.y;
 	readings.accel_z = tmp.z;
 
-	drv_data->callback_func (&input_accel, (gpointer) &readings, drv_data->user_data);
+	sensor_device->callback_func (&input_accel, (gpointer) &readings, sensor_device->user_data);
 }
 
 static void
@@ -194,9 +192,7 @@ first_values (gpointer user_data)
 }
 
 static SensorDevice *
-input_accel_open (GUdevDevice        *device,
-		  ReadingsUpdateFunc  callback_func,
-		  gpointer            user_data)
+input_accel_open (GUdevDevice *device)
 {
 	const gchar * const subsystems[] = { "input", NULL };
 	SensorDevice *sensor_device;
@@ -220,8 +216,6 @@ input_accel_open (GUdevDevice        *device,
 	drv_data->client = g_udev_client_new (subsystems);
 	drv_data->mount_matrix = setup_mount_matrix (device);
 	drv_data->location = setup_accel_location (device);
-	drv_data->callback_func = callback_func;
-	drv_data->user_data = user_data;
 
 	g_signal_connect (drv_data->client, "uevent",
 			  G_CALLBACK (uevent_received), sensor_device);

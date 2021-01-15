@@ -17,9 +17,6 @@
 #include <linux/input.h>
 
 typedef struct DrvData {
-	ReadingsUpdateFunc callback_func;
-	gpointer           user_data;
-
 	guint              timeout_id;
 } DrvData;
 
@@ -44,7 +41,6 @@ static gboolean
 compass_changed (gpointer user_data)
 {
 	SensorDevice *sensor_device = user_data;
-	DrvData *drv_data = (DrvData *) sensor_device->priv;
 	static gdouble heading = 0;
 	CompassReadings readings;
 
@@ -54,7 +50,7 @@ compass_changed (gpointer user_data)
 	g_debug ("Changed heading to %f", heading);
 	readings.heading = heading;
 
-	drv_data->callback_func (&fake_compass, (gpointer) &readings, drv_data->user_data);
+	sensor_device->callback_func (&fake_compass, (gpointer) &readings, sensor_device->user_data);
 
 	return G_SOURCE_CONTINUE;
 }
@@ -72,18 +68,12 @@ first_values (gpointer user_data)
 }
 
 static SensorDevice *
-fake_compass_open (GUdevDevice        *device,
-		   ReadingsUpdateFunc  callback_func,
-		   gpointer            user_data)
+fake_compass_open (GUdevDevice *device)
 {
 	SensorDevice *sensor_device;
-	DrvData *drv_data;
 
 	sensor_device = g_new0 (SensorDevice, 1);
 	sensor_device->priv = g_new0 (DrvData, 1);
-	drv_data = (DrvData *) sensor_device->priv;
-	drv_data->callback_func = callback_func;
-	drv_data->user_data = user_data;
 
 	return sensor_device;
 }

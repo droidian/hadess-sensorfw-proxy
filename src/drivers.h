@@ -79,9 +79,7 @@ struct SensorDriver {
 	DriverType              type;
 
 	gboolean       (*discover)    (GUdevDevice        *device);
-	SensorDevice * (*open)        (GUdevDevice        *device,
-				       ReadingsUpdateFunc  callback_func,
-				       gpointer            user_data);
+	SensorDevice * (*open)        (GUdevDevice        *device);
 	void           (*set_polling) (SensorDevice       *device,
 				       gboolean            state);
 	void           (*close)       (SensorDevice       *device);
@@ -89,7 +87,11 @@ struct SensorDriver {
 
 struct SensorDevice {
 	struct SensorDriver *drv;
-	gpointer priv;
+	gpointer             priv;
+
+	/* Callback function and data as pass to driver_open() */
+	ReadingsUpdateFunc   callback_func;
+	gpointer             user_data;
 };
 
 static inline gboolean
@@ -122,10 +124,12 @@ driver_open (SensorDriver       *driver,
 	g_return_val_if_fail (device, NULL);
 	g_return_val_if_fail (callback_func, NULL);
 
-	sensor_device = driver->open (device, callback_func, user_data);
+	sensor_device = driver->open (device);
 	if (!sensor_device)
 		return NULL;
 	sensor_device->drv = driver;
+	sensor_device->callback_func = callback_func;
+	sensor_device->user_data = user_data;
 	return sensor_device;
 }
 

@@ -18,9 +18,6 @@
 #define DEFAULT_POLL_TIME 0.8
 
 typedef struct DrvData {
-	ReadingsUpdateFunc  callback_func;
-	gpointer            user_data;
-
 	char               *input_path;
 	guint               interval;
 	guint               timeout_id;
@@ -61,7 +58,7 @@ light_changed (gpointer user_data)
 	 * will be Windows 8 compatible */
 	readings.uses_lux = TRUE;
 
-	drv_data->callback_func (&iio_poll_light, (gpointer) &readings, drv_data->user_data);
+	sensor_device->callback_func (&iio_poll_light, (gpointer) &readings, sensor_device->user_data);
 
 	return G_SOURCE_CONTINUE;
 }
@@ -134,9 +131,7 @@ iio_poll_light_set_polling (SensorDevice *sensor_device,
 }
 
 static SensorDevice *
-iio_poll_light_open (GUdevDevice        *device,
-		     ReadingsUpdateFunc  callback_func,
-		     gpointer            user_data)
+iio_poll_light_open (GUdevDevice *device)
 {
 	SensorDevice *sensor_device;
 	DrvData *drv_data;
@@ -153,8 +148,6 @@ iio_poll_light_open (GUdevDevice        *device,
 	sensor_device = g_new0 (SensorDevice, 1);
 	sensor_device->priv = g_new0 (DrvData, 1);
 	drv_data = (DrvData *) sensor_device->priv;
-	drv_data->callback_func = callback_func;
-	drv_data->user_data = user_data;
 
 	drv_data->interval = get_interval (device);
 

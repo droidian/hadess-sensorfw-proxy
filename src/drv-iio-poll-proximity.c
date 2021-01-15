@@ -23,8 +23,6 @@
 
 typedef struct DrvData {
 	guint               timeout_id;
-	ReadingsUpdateFunc  callback_func;
-	gpointer            user_data;
 	GUdevDevice        *dev;
 	const char         *name;
 	gint                near_level;
@@ -48,7 +46,7 @@ poll_proximity (gpointer user_data)
 	g_debug ("Proximity read from IIO on '%s': %d/%f, near: %d", drv_data->name, prox, near_level, readings.is_near);
 	drv_data->last_level = prox;
 
-	drv_data->callback_func (&iio_poll_proximity, (gpointer) &readings, drv_data->user_data);
+	sensor_device->callback_func (&iio_poll_proximity, (gpointer) &readings, sensor_device->user_data);
 
 	return G_SOURCE_CONTINUE;
 }
@@ -98,9 +96,7 @@ get_near_level (GUdevDevice *device)
 
 
 static SensorDevice *
-iio_poll_proximity_open (GUdevDevice        *device,
-			 ReadingsUpdateFunc  callback_func,
-			 gpointer	     user_data)
+iio_poll_proximity_open (GUdevDevice *device)
 {
 	SensorDevice *sensor_device;
 	DrvData *drv_data;
@@ -116,8 +112,6 @@ iio_poll_proximity_open (GUdevDevice        *device,
 	drv_data = (DrvData *) sensor_device->priv;
 	drv_data->dev = g_object_ref (device);
 	drv_data->name = g_udev_device_get_sysfs_attr (device, "name");
-	drv_data->callback_func = callback_func;
-	drv_data->user_data = user_data;
 	drv_data->near_level = near_level;
 
 	return sensor_device;
