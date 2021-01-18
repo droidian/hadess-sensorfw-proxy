@@ -312,6 +312,35 @@ class Tests(dbusmock.DBusTestCase):
 
         self.stop_daemon()
 
+    def test_iio_poll_accel(self):
+        '''iio poll accel'''
+        accel = self.testbed.add_device('iio', 'iio-accel', None,
+            ['in_accel_x_raw', '0',
+             'in_accel_y_raw', '-25.6',
+             'in_accel_z_raw', '0',
+             'in_accel_scale', '10',
+             'sampling_frequency', '5.2',
+             'name', 'IIO Test Accelerometer'],
+            ['NAME', '"IIO Accelerometer"',
+             'IIO_SENSOR_PROXY_TYPE', 'iio-poll-accel']
+        )
+        self.start_daemon()
+        self.assertEqual(self.get_dbus_property('HasAmbientLight'), False)
+        self.assertEqual(self.get_dbus_property('HasAccelerometer'), True)
+
+        # Default values
+        self.assertEqual(self.get_dbus_property('AccelerometerOrientation'), 'undefined')
+        self.assertEqual(self.read_sysfs_attr(accel, 'sampling_frequency'), b'10')
+
+        self.proxy.ClaimAccelerometer()
+        self.assertEventually(lambda: self.get_dbus_property('AccelerometerOrientation') == 'normal')
+
+        self.testbed.set_attribute(accel, 'in_accel_x_raw', '-25.6')
+        self.testbed.set_attribute(accel, 'in_accel_y_raw', '0')
+        self.assertEventually(lambda: self.get_dbus_property('AccelerometerOrientation') == 'right-up')
+
+        self.stop_daemon()
+
     #
     # Helper methods
     #
