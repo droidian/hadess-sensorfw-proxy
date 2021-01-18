@@ -341,6 +341,32 @@ class Tests(dbusmock.DBusTestCase):
 
         self.stop_daemon()
 
+    def test_iio_poll_light(self):
+        '''iio poll light'''
+        hwmon = self.testbed.add_device('iio', 'iio-als', None,
+            ['integration_time', '1',
+             'in_illuminance_input', '10',
+             'in_illuminance_scale', '1.0'],
+            ['NAME', '"IIO Light Sensor"',
+             'IIO_SENSOR_PROXY_TYPE', 'iio-poll-als']
+        )
+        self.start_daemon()
+        self.assertEqual(self.get_dbus_property('HasAmbientLight'), True)
+        self.assertEqual(self.get_dbus_property('HasAccelerometer'), False)
+
+        # Default values
+        self.assertEqual(self.get_dbus_property('LightLevelUnit'), 'lux')
+        self.assertEqual(self.get_dbus_property('LightLevel'), 0)
+
+        self.proxy.ClaimLight()
+        self.assertEventually(lambda: int(self.get_dbus_property('LightLevel')) == 10)
+        self.assertEqual(self.get_dbus_property('LightLevelUnit'), 'lux')
+
+        self.testbed.set_attribute(hwmon, 'in_illuminance_input', '30')
+        self.assertEventually(lambda: self.get_dbus_property('LightLevel') == 30)
+
+        self.stop_daemon()
+
     #
     # Helper methods
     #
