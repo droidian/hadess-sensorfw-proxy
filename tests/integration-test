@@ -291,7 +291,7 @@ class Tests(dbusmock.DBusTestCase):
 
     def test_fake_compass(self):
         '''fake compass'''
-        hwmon = self.testbed.add_device('input', 'fake-compass', None,
+        self.testbed.add_device('input', 'fake-compass', None,
             [],
             ['NAME', '"Power Button"']
         )
@@ -306,12 +306,9 @@ class Tests(dbusmock.DBusTestCase):
             self.dbus, Gio.DBusProxyFlags.DO_NOT_AUTO_START, None, SP,
             SP_COMPASS_PATH, SP_COMPASS, None)
         compass_proxy.ClaimCompass()
-        process = subprocess.Popen(['gdbus', 'introspect', '--system', '--dest', 'net.hadess.SensorProxy', '--object-path', '/net/hadess/SensorProxy/Compass'])
 
         self.assertEventually(lambda: int(self.get_compass_dbus_property('CompassHeading')) == 10)
         self.assertEventually(lambda: int(self.get_compass_dbus_property('CompassHeading')) == 20)
-
-        # print (self.get_dbus_property('Foo'))
 
         self.stop_daemon()
 
