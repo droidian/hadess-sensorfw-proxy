@@ -216,7 +216,7 @@ iio_buffer_light_close (SensorDevice *sensor_device)
 }
 
 SensorDriver iio_buffer_light = {
-	.name = "IIO Buffer Light sensor",
+	.driver_name = "IIO Buffer Light sensor",
 	.type = DRIVER_TYPE_LIGHT,
 
 	.discover = iio_buffer_light_discover,

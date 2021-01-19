@@ -268,7 +268,7 @@ input_accel_close (SensorDevice *sensor_device)
 }
 
 SensorDriver input_accel = {
-	.name = "Input accelerometer",
+	.driver_name = "Input accelerometer",
 	.type = DRIVER_TYPE_ACCEL,
 
 	.discover = input_accel_discover,

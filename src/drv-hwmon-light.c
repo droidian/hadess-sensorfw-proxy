@@ -106,7 +106,7 @@ hwmon_light_close (SensorDevice *sensor_device)
 }
 
 SensorDriver hwmon_light = {
-	.name = "Platform HWMon Light",
+	.driver_name = "Platform HWMon Light",
 	.type = DRIVER_TYPE_LIGHT,
 
 	.discover = hwmon_light_discover,

@@ -129,7 +129,7 @@ iio_poll_accel_close (SensorDevice *sensor_device)
 }
 
 SensorDriver iio_poll_accel = {
-	.name = "IIO Poll accelerometer",
+	.driver_name = "IIO Poll accelerometer",
 	.type = DRIVER_TYPE_ACCEL,
 
 	.discover = iio_poll_accel_discover,

@@ -128,7 +128,7 @@ iio_poll_proximity_close (SensorDevice *sensor_device)
 }
 
 SensorDriver iio_poll_proximity = {
-	.name = "IIO Poll proximity sensor",
+	.driver_name = "IIO Poll proximity sensor",
 	.type = DRIVER_TYPE_PROXIMITY,
 
 	.discover = iio_poll_proximity_discover,

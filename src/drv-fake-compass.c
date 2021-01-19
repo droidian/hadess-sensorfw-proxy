@@ -108,7 +108,7 @@ fake_compass_close (SensorDevice *sensor_device)
 }
 
 SensorDriver fake_compass = {
-	.name = "Fake compass",
+	.driver_name = "Fake compass",
 	.type = DRIVER_TYPE_COMPASS,
 
 	.discover = fake_compass_discover,

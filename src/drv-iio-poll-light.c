@@ -177,7 +177,7 @@ iio_poll_light_close (SensorDevice *sensor_device)
 }
 
 SensorDriver iio_poll_light = {
-	.name = "IIO Polling Light sensor",
+	.driver_name = "IIO Polling Light sensor",
 	.type = DRIVER_TYPE_LIGHT,
 
 	.discover = iio_poll_light_discover,

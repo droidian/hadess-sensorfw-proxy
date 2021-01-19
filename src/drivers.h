@@ -74,7 +74,7 @@ typedef void (*ReadingsUpdateFunc) (SensorDevice *sensor_device,
 
 
 typedef struct {
-	const char             *name;
+	const char             *driver_name;
 	DriverType              type;
 
 	gboolean       (*discover)    (GUdevDevice        *device);
