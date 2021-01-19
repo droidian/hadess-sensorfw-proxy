@@ -125,7 +125,7 @@ class Tests(dbusmock.DBusTestCase):
     # Daemon control and D-BUS I/O
     #
 
-    def start_daemon(self, env = None):
+    def start_daemon(self, env = None, wrapper = None):
         '''Start daemon and create DBus proxy.
 
         When done, this sets self.proxy as the Gio.DBusProxy for power-profiles-daemon.
@@ -139,10 +139,14 @@ class Tests(dbusmock.DBusTestCase):
         # have to do that ourselves
         env['UMOCKDEV_DIR'] = self.testbed.get_root_dir()
         self.log = tempfile.NamedTemporaryFile()
-        if os.getenv('VALGRIND') != None:
-            daemon_path = ['valgrind', self.daemon_path, '-v']
+        if wrapper:
+            daemon_path = wrapper + [ self.daemon_path ]
         else:
-            daemon_path = [self.daemon_path, '-v']
+            daemon_path = [ self.daemon_path ]
+        if os.getenv('VALGRIND') != None:
+            daemon_path = ['valgrind'] + daemon_path + ['-v']
+        else:
+            daemon_path = daemon_path + ['-v']
 
         self.daemon = subprocess.Popen(daemon_path,
                                        env=env, stdout=self.log,
@@ -396,6 +400,20 @@ class Tests(dbusmock.DBusTestCase):
         # Test margin
         self.testbed.set_attribute(prox, 'in_proximity_raw', '127')
         self.assertEventually(lambda: self.get_dbus_property('ProximityNear') == True)
+
+        self.stop_daemon()
+
+    def test_input_accel(self):
+        '''input accelerometer'''
+        top_srcdir = os.getenv('top_srcdir', '.')
+        script = ['umockdev-run', '-d', top_srcdir + '/tests/input-accel-device',
+                  '-i', '/dev/input/event4=%s/tests/input-accel-capture.ioctl' % (top_srcdir),
+                  '--']
+
+        self.start_daemon(wrapper=script)
+
+        self.assertEqual(self.get_dbus_property('HasAccelerometer'), True)
+        self.assertEqual(self.get_dbus_property('AccelerometerOrientation'), 'normal')
 
         self.stop_daemon()
 
