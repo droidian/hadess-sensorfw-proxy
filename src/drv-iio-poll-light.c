@@ -45,12 +45,13 @@ light_changed (gpointer user_data)
 		level = g_ascii_strtod (contents, NULL);
 		g_free (contents);
 	} else {
-		g_warning ("Failed to read input level at %s: %s",
-			   drv_data->input_path, error->message);
+		g_warning ("Failed to read input level from %s at %s: %s",
+			   sensor_device->name, drv_data->input_path, error->message);
 		return G_SOURCE_CONTINUE;
 	}
 	readings.level = level * drv_data->scale;
-	g_debug ("Light read from IIO: %lf, (scale %lf)", level, drv_data->scale);
+	g_debug ("Light read from %s: %lf, (scale %lf)", sensor_device->name,
+		 level, drv_data->scale);
 
 	/* Even though the IIO kernel API declares in_intensity* values as unitless,
 	 * we use Microsoft's hid-sensors-usages.docx which mentions that Windows 8
@@ -146,6 +147,9 @@ iio_poll_light_open (GUdevDevice *device)
 		return NULL;
 
 	sensor_device = g_new0 (SensorDevice, 1);
+	sensor_device->name = g_strdup (g_udev_device_get_property (device, "NAME"));
+	if (!sensor_device->name)
+		sensor_device->name = g_strdup (g_udev_device_get_name (device));
 	sensor_device->priv = g_new0 (DrvData, 1);
 	drv_data = (DrvData *) sensor_device->priv;
 

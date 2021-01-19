@@ -74,6 +74,7 @@ fake_compass_open (GUdevDevice *device)
 
 	sensor_device = g_new0 (SensorDevice, 1);
 	sensor_device->priv = g_new0 (DrvData, 1);
+	sensor_device->name = g_strdup ("Fake Compass");
 
 	return sensor_device;
 }

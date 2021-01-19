@@ -20,7 +20,6 @@ typedef struct {
 
 	GUdevDevice *dev;
 	const char *dev_path;
-	const char *name;
 	AccelVec3 *mount_matrix;
 	AccelLocation location;
 	int device_id;
@@ -39,7 +38,7 @@ process_scan (IIOSensorData data, SensorDevice *sensor_device)
 	AccelScale scale;
 
 	if (data.read_size < 0) {
-		g_warning ("Couldn't read from device '%s': %s", drv_data->name, g_strerror (errno));
+		g_warning ("Couldn't read from device '%s': %s", sensor_device->name, g_strerror (errno));
 		return 0;
 	}
 
@@ -48,7 +47,7 @@ process_scan (IIOSensorData data, SensorDevice *sensor_device)
 	 * Just read the last one */
 	i = (data.read_size / drv_data->buffer_data->scan_size) - 1;
 	if (i < 0) {
-		g_debug ("Not enough data to read from '%s' (read_size: %d scan_size: %d)", drv_data->name,
+		g_debug ("Not enough data to read from '%s' (read_size: %d scan_size: %d)", sensor_device->name,
 			 (int) data.read_size, drv_data->buffer_data->scan_size);
 		return 0;
 	}
@@ -57,7 +56,7 @@ process_scan (IIOSensorData data, SensorDevice *sensor_device)
 	process_scan_1(data.data + drv_data->buffer_data->scan_size*i, drv_data->buffer_data, "in_accel_y", &accel_y, &scale.y, &present_y);
 	process_scan_1(data.data + drv_data->buffer_data->scan_size*i, drv_data->buffer_data, "in_accel_z", &accel_z, &scale.z, &present_z);
 
-	g_debug ("Accel read from IIO on '%s': %d, %d, %d (scale %lf,%lf,%lf)", drv_data->name,
+	g_debug ("Accel read from IIO on '%s': %d, %d, %d (scale %lf,%lf,%lf)", sensor_device->name,
 		 accel_x, accel_y, accel_z,
 		 scale.x, scale.y, scale.z);
 
@@ -93,14 +92,14 @@ prepare_output (SensorDevice *sensor_device,
 	/* Attempt to open non blocking to access dev */
 	fp = open (drv_data->dev_path, O_RDONLY | O_NONBLOCK);
 	if (fp == -1) { /* If it isn't there make the node */
-		g_warning ("Failed to open '%s' at %s: %s", drv_data->name, drv_data->dev_path, g_strerror (errno));
+		g_warning ("Failed to open '%s' at %s: %s", sensor_device->name, drv_data->dev_path, g_strerror (errno));
 		goto bail;
 	}
 
 	/* Actually read the data */
 	data.read_size = read (fp, data.data, buf_len * drv_data->buffer_data->scan_size);
 	if (data.read_size == -1 && errno == EAGAIN) {
-		g_debug ("No new data available on '%s'", drv_data->name);
+		g_debug ("No new data available on '%s'", sensor_device->name);
 	} else {
 		process_scan (data, sensor_device);
 	}
@@ -217,6 +216,9 @@ iio_buffer_accel_open (GUdevDevice *device)
 		return NULL;
 
 	sensor_device = g_new0 (SensorDevice, 1);
+	sensor_device->name = g_strdup (g_udev_device_get_property (device, "NAME"));
+	if (!sensor_device->name)
+		sensor_device->name = g_strdup (g_udev_device_get_name (device));
 	sensor_device->priv = g_new0 (DrvData, 1);
 	drv_data = (DrvData *) sensor_device->priv;
 	drv_data->buffer_data = buffer_data;
@@ -224,9 +226,6 @@ iio_buffer_accel_open (GUdevDevice *device)
 	drv_data->location = setup_accel_location (device);
 	drv_data->dev = g_object_ref (device);
 	drv_data->dev_path = g_udev_device_get_device_file (device);
-	drv_data->name = g_udev_device_get_property (device, "NAME");
-	if (!drv_data->name)
-		drv_data->name = g_udev_device_get_name (device);
 
 	return sensor_device;
 }

@@ -62,6 +62,7 @@ hwmon_light_open (GUdevDevice *device)
 	DrvData *drv_data;
 
 	sensor_device = g_new0 (SensorDevice, 1);
+	sensor_device->name = g_strdup (g_udev_device_get_name (device));
 	sensor_device->priv = g_new0 (DrvData, 1);
 	drv_data = (DrvData *) sensor_device->priv;
 

@@ -23,7 +23,6 @@ typedef struct DrvData {
 	GUdevClient *client;
 	GUdevDevice *dev, *parent;
 	const char *dev_path;
-	const char *name;
 	AccelVec3 *mount_matrix;
 	AccelLocation location;
 	gboolean sends_kevent;
@@ -142,7 +141,7 @@ accelerometer_changed (gpointer user_data)
 	/* Scale from 1G ~= 256 to a value in m/s² */
 	set_accel_scale (&readings.scale, 1.0 / 256 * 9.81);
 
-	g_debug ("Accel read from input on '%s': %d, %d, %d (scale %lf,%lf,%lf)", drv_data->name,
+	g_debug ("Accel read from input on '%s': %d, %d, %d (scale %lf,%lf,%lf)", sensor_device->name,
 		 accel_x, accel_y, accel_z,
 		 readings.scale.x, readings.scale.y, readings.scale.z);
 
@@ -199,20 +198,23 @@ input_accel_open (GUdevDevice *device)
 	DrvData *drv_data;
 
 	sensor_device = g_new0 (SensorDevice, 1);
+	sensor_device->name = g_strdup (g_udev_device_get_property (device, "NAME"));
+	if (!sensor_device->name)
+		sensor_device->name = g_strdup (g_udev_device_get_name (device));
+	if (!sensor_device->name)
+		sensor_device->name = g_strdup (g_udev_device_get_property (device, "ID_MODEL"));
+	if (!sensor_device->name) {
+		g_autoptr(GUdevDevice) parent = NULL;
+
+		parent = g_udev_device_get_parent (device);
+		sensor_device->name = g_strdup (g_udev_device_get_property (parent, "NAME"));
+	}
+
 	sensor_device->priv = g_new0 (DrvData, 1);
 	drv_data = (DrvData *) sensor_device->priv;
 	drv_data->dev = g_object_ref (device);
 	drv_data->parent = g_udev_device_get_parent (drv_data->dev);
 	drv_data->dev_path = g_udev_device_get_device_file (device);
-	drv_data->name = g_udev_device_get_property (device, "NAME");
-	if (!drv_data->name)
-		drv_data->name = g_udev_device_get_property (device, "ID_MODEL");
-	if (!drv_data->name) {
-		g_autoptr(GUdevDevice) parent = NULL;
-
-		parent = g_udev_device_get_parent (device);
-		drv_data->name = g_strdup (g_udev_device_get_property (parent, "NAME"));
-	}
 	drv_data->client = g_udev_client_new (subsystems);
 	drv_data->mount_matrix = setup_mount_matrix (device);
 	drv_data->location = setup_accel_location (device);

@@ -87,6 +87,7 @@ typedef struct {
 struct SensorDevice {
 	SensorDriver        *drv;
 	gpointer             priv;
+	char                *name;
 
 	/* Callback function and data as pass to driver_open() */
 	ReadingsUpdateFunc   callback_func;
@@ -155,6 +156,7 @@ driver_close (SensorDevice *sensor_device)
 
 	g_return_if_fail (sensor_device);
 	driver_set_polling (sensor_device, FALSE);
+	g_clear_pointer (&sensor_device->name, g_free);
 	driver = sensor_device->drv;
 	g_return_if_fail (driver->close);
 	driver->close (sensor_device);

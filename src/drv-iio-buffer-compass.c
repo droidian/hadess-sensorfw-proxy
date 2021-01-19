@@ -20,7 +20,6 @@ typedef struct {
 
 	GUdevDevice        *dev;
 	const char         *dev_path;
-	const char         *name;
 	int                 device_id;
 	BufferDrvData      *buffer_data;
 } DrvData;
@@ -37,7 +36,7 @@ process_scan (IIOSensorData data, SensorDevice *sensor_device)
 	CompassReadings readings;
 
 	if (data.read_size < 0) {
-		g_warning ("Couldn't read from device '%s': %s", drv_data->name, g_strerror (errno));
+		g_warning ("Couldn't read from device '%s': %s", sensor_device->name, g_strerror (errno));
 		return 0;
 	}
 
@@ -46,7 +45,7 @@ process_scan (IIOSensorData data, SensorDevice *sensor_device)
 	 * Just read the last one */
 	i = (data.read_size / drv_data->buffer_data->scan_size) - 1;
 	if (i < 0) {
-		g_debug ("Not enough data to read from '%s' (read_size: %d scan_size: %d)", drv_data->name,
+		g_debug ("Not enough data to read from '%s' (read_size: %d scan_size: %d)", sensor_device->name,
 			 (int) data.read_size, drv_data->buffer_data->scan_size);
 		return 0;
 	}
@@ -54,7 +53,7 @@ process_scan (IIOSensorData data, SensorDevice *sensor_device)
 	process_scan_1 (data.data + drv_data->buffer_data->scan_size*i, drv_data->buffer_data, channel_name, &raw_heading, &scale, &present_level);
 
 	readings.heading = raw_heading * scale;
-	g_debug ("Heading read from IIO on '%s': %f (%d times %lf scale)", drv_data->name, readings.heading, raw_heading, scale);
+	g_debug ("Heading read from IIO on '%s': %f (%d times %lf scale)", sensor_device->name, readings.heading, raw_heading, scale);
 
 	//FIXME report errors
 	sensor_device->callback_func (sensor_device, (gpointer) &readings, sensor_device->user_data);
@@ -77,14 +76,14 @@ prepare_output (SensorDevice *sensor_device,
 	/* Attempt to open non blocking to access dev */
 	fp = open (drv_data->dev_path, O_RDONLY | O_NONBLOCK);
 	if (fp == -1) { /* If it isn't there make the node */
-		g_warning ("Failed to open '%s' at %s : %s", drv_data->name,  drv_data->dev_path, g_strerror (errno));
+		g_warning ("Failed to open '%s' at %s : %s", sensor_device->name,  drv_data->dev_path, g_strerror (errno));
 		goto bail;
 	}
 
 	/* Actually read the data */
 	data.read_size = read (fp, data.data, buf_len * drv_data->buffer_data->scan_size);
 	if (data.read_size == -1 && errno == EAGAIN) {
-		g_debug ("No new data available on '%s'", drv_data->name);
+		g_debug ("No new data available on '%s'", sensor_device->name);
 	} else {
 		process_scan (data, sensor_device);
 	}
@@ -166,14 +165,14 @@ iio_buffer_compass_open (GUdevDevice *device)
 		return NULL;
 
 	sensor_device = g_new0 (SensorDevice, 1);
+	sensor_device->name = g_strdup (g_udev_device_get_property (device, "NAME"));
+	if (!sensor_device->name)
+		sensor_device->name = g_strdup (g_udev_device_get_name (device));
 	sensor_device->priv = g_new0 (DrvData, 1);
 	drv_data = (DrvData *) sensor_device->priv;
 	drv_data->dev = g_object_ref (device);
 	drv_data->buffer_data = buffer_data;
 	drv_data->dev_path = g_udev_device_get_device_file (device);
-	drv_data->name = g_udev_device_get_property (device, "NAME");
-	if (!drv_data->name)
-		drv_data->name = g_udev_device_get_name (device);
 
 	return sensor_device;
 }

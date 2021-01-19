@@ -20,7 +20,6 @@
 typedef struct DrvData {
 	guint               timeout_id;
 	GUdevDevice        *dev;
-	const char         *name;
 	AccelVec3          *mount_matrix;
 	AccelLocation       location;
 	AccelScale          scale;
@@ -40,7 +39,7 @@ poll_orientation (gpointer user_data)
 	accel_z = g_udev_device_get_sysfs_attr_as_int_uncached (drv_data->dev, "in_accel_z_raw");
 	copy_accel_scale (&readings.scale, drv_data->scale);
 
-	g_debug ("Accel read from IIO on '%s': %d, %d, %d (scale %lf,%lf,%lf)", drv_data->name,
+	g_debug ("Accel read from IIO on '%s': %d, %d, %d (scale %lf,%lf,%lf)", sensor_device->name,
 		 accel_x, accel_y, accel_z,
 		 drv_data->scale.x, drv_data->scale.y, drv_data->scale.z);
 
@@ -105,10 +104,12 @@ iio_poll_accel_open (GUdevDevice *device)
 	iio_fixup_sampling_frequency (device);
 
 	sensor_device = g_new0 (SensorDevice, 1);
+	sensor_device->name = g_strdup (g_udev_device_get_property (device, "NAME"));
+	if (!sensor_device->name)
+		sensor_device->name = g_strdup (g_udev_device_get_name (device));
 	sensor_device->priv = g_new0 (DrvData, 1);
 	drv_data = (DrvData *) sensor_device->priv;
 	drv_data->dev = g_object_ref (device);
-	drv_data->name = g_udev_device_get_sysfs_attr (device, "name");
 	drv_data->mount_matrix = setup_mount_matrix (device);
 	drv_data->location = setup_accel_location (device);
 	if (!get_accel_scale (device, &drv_data->scale))

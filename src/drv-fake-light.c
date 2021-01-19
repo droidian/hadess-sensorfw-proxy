@@ -74,6 +74,7 @@ fake_light_open (GUdevDevice *device)
 
 	sensor_device = g_new0 (SensorDevice, 1);
 	sensor_device->priv = g_new0 (DrvData, 1);
+	sensor_device->name = g_strdup ("Fake Light Sensor");
 
 	return sensor_device;
 }
