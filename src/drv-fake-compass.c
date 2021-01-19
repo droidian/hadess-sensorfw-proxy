@@ -50,7 +50,7 @@ compass_changed (gpointer user_data)
 	g_debug ("Changed heading to %f", heading);
 	readings.heading = heading;
 
-	sensor_device->callback_func (&fake_compass, (gpointer) &readings, sensor_device->user_data);
+	sensor_device->callback_func (sensor_device, (gpointer) &readings, sensor_device->user_data);
 
 	return G_SOURCE_CONTINUE;
 }

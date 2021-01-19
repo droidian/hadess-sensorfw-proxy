@@ -62,7 +62,7 @@ process_scan (IIOSensorData data, SensorDevice *sensor_device)
 	readings.uses_lux = TRUE;
 
 	//FIXME report errors
-	sensor_device->callback_func (&iio_buffer_light, (gpointer) &readings, sensor_device->user_data);
+	sensor_device->callback_func (sensor_device, (gpointer) &readings, sensor_device->user_data);
 
 	return 1;
 }

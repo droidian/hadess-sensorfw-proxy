@@ -50,7 +50,7 @@ light_changed (gpointer user_data)
 
 	readings.level = level;
 	readings.uses_lux = FALSE;
-	sensor_device->callback_func (&hwmon_light, (gpointer) &readings, sensor_device->user_data);
+	sensor_device->callback_func (sensor_device, (gpointer) &readings, sensor_device->user_data);
 
 	return G_SOURCE_CONTINUE;
 }

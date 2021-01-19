@@ -46,7 +46,7 @@ typedef enum {
   PROXIMITY_NEAR_TRUE  =  1,
 } ProximityNear;
 
-typedef struct SensorDriver SensorDriver;
+typedef struct SensorDevice SensorDevice;
 
 typedef struct {
 	int accel_x;
@@ -68,13 +68,12 @@ typedef struct {
 	ProximityNear is_near;
 } ProximityReadings;
 
-typedef void (*ReadingsUpdateFunc) (SensorDriver *driver,
+typedef void (*ReadingsUpdateFunc) (SensorDevice *sensor_device,
 				    gpointer      readings,
 				    gpointer      user_data);
 
-typedef struct SensorDevice SensorDevice;
 
-struct SensorDriver {
+typedef struct {
 	const char             *name;
 	DriverType              type;
 
@@ -83,10 +82,10 @@ struct SensorDriver {
 	void           (*set_polling) (SensorDevice       *device,
 				       gboolean            state);
 	void           (*close)       (SensorDevice       *device);
-};
+} SensorDriver;
 
 struct SensorDevice {
-	struct SensorDriver *drv;
+	SensorDriver        *drv;
 	gpointer             priv;
 
 	/* Callback function and data as pass to driver_open() */

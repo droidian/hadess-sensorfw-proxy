@@ -57,7 +57,7 @@ process_scan (IIOSensorData data, SensorDevice *sensor_device)
 	g_debug ("Heading read from IIO on '%s': %f (%d times %lf scale)", drv_data->name, readings.heading, raw_heading, scale);
 
 	//FIXME report errors
-	sensor_device->callback_func (&iio_buffer_compass, (gpointer) &readings, sensor_device->user_data);
+	sensor_device->callback_func (sensor_device, (gpointer) &readings, sensor_device->user_data);
 
 	return 1;
 }

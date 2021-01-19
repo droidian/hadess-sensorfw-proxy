@@ -56,7 +56,7 @@ poll_orientation (gpointer user_data)
 	readings.accel_y = tmp.y;
 	readings.accel_z = tmp.z;
 
-	sensor_device->callback_func (&iio_poll_accel, (gpointer) &readings, sensor_device->user_data);
+	sensor_device->callback_func (sensor_device, (gpointer) &readings, sensor_device->user_data);
 
 	return G_SOURCE_CONTINUE;
 }

@@ -58,7 +58,7 @@ light_changed (gpointer user_data)
 	 * will be Windows 8 compatible */
 	readings.uses_lux = TRUE;
 
-	sensor_device->callback_func (&iio_poll_light, (gpointer) &readings, sensor_device->user_data);
+	sensor_device->callback_func (sensor_device, (gpointer) &readings, sensor_device->user_data);
 
 	return G_SOURCE_CONTINUE;
 }

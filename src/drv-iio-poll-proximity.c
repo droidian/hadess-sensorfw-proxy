@@ -46,7 +46,7 @@ poll_proximity (gpointer user_data)
 	g_debug ("Proximity read from IIO on '%s': %d/%f, near: %d", drv_data->name, prox, near_level, readings.is_near);
 	drv_data->last_level = prox;
 
-	sensor_device->callback_func (&iio_poll_proximity, (gpointer) &readings, sensor_device->user_data);
+	sensor_device->callback_func (sensor_device, (gpointer) &readings, sensor_device->user_data);
 
 	return G_SOURCE_CONTINUE;
 }

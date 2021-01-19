@@ -73,7 +73,7 @@ process_scan (IIOSensorData data, SensorDevice *sensor_device)
 	readings.accel_y = tmp.y;
 	readings.accel_z = tmp.z;
 	copy_accel_scale (&readings.scale, scale);
-	sensor_device->callback_func (&iio_buffer_accel, (gpointer) &readings, sensor_device->user_data);
+	sensor_device->callback_func (sensor_device, (gpointer) &readings, sensor_device->user_data);
 
 	return 1;
 }

@@ -661,7 +661,7 @@ setup_dbus (SensorData *data,
 }
 
 static void
-accel_changed_func (SensorDriver *driver,
+accel_changed_func (SensorDevice *sensor_device,
 		    gpointer      readings_data,
 		    gpointer      user_data)
 {
@@ -691,7 +691,7 @@ accel_changed_func (SensorDriver *driver,
 }
 
 static void
-light_changed_func (SensorDriver *driver,
+light_changed_func (SensorDevice *sensor_device,
 		    gpointer      readings_data,
 		    gpointer      user_data)
 {
@@ -718,7 +718,7 @@ light_changed_func (SensorDriver *driver,
 }
 
 static void
-compass_changed_func (SensorDriver *driver,
+compass_changed_func (SensorDevice *sensor_device,
                       gpointer      readings_data,
                       gpointer      user_data)
 {
@@ -742,7 +742,7 @@ compass_changed_func (SensorDriver *driver,
 }
 
 static void
-proximity_changed_func (SensorDriver *driver,
+proximity_changed_func (SensorDevice *sensor_device,
 			gpointer      readings_data,
 			gpointer      user_data)
 {
