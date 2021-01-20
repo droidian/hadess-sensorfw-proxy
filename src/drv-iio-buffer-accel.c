@@ -161,7 +161,7 @@ read_orientation (gpointer user_data)
 static gboolean
 iio_buffer_accel_discover (GUdevDevice *device)
 {
-	char *trigger_name;
+	g_autofree char *trigger_name = NULL;
 
 	if (!drv_check_udev_sensor_type (device, "iio-buffer-accel", NULL))
 	    return FALSE;
@@ -172,7 +172,6 @@ iio_buffer_accel_discover (GUdevDevice *device)
 		g_debug ("Could not find trigger for %s", g_udev_device_get_sysfs_path (device));
 		return FALSE;
 	}
-	g_free (trigger_name);
 
 	g_debug ("Found IIO buffer accelerometer at %s", g_udev_device_get_sysfs_path (device));
 	return TRUE;
