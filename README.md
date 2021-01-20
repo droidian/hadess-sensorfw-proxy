@@ -59,10 +59,16 @@ gdbus introspect --system --dest net.hadess.SensorProxy --object-path /net/hades
 After that, use `monitor-sensor` to see changes in the ambient light sensor
 or the accelerometer. Note that compass changes are only available to GeoClue
 but if you need to ensure that GeoClue is getting correct data you can run:
-`su -s /bin/sh geoclue -c monitor-sensor`
+```sh
+su -s /bin/sh geoclue -c monitor-sensor`
+```
 
 If that doesn't work, please file an issue, make sure iio-sensor-proxy is new
 enough and attach the output of:
+```sh
+/usr/libexec/iio-sensor-proxy -v -r
+```
+running as `root`.
 
 Note that, before filing any issues against iio-sensor-proxy, you'll want
 to make doubly-sure that the IIO device actually works, using `iio_generic_buffer`
