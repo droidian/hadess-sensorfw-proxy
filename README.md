@@ -63,8 +63,14 @@ but if you need to ensure that GeoClue is getting correct data you can run:
 
 If that doesn't work, please file an issue, make sure iio-sensor-proxy is new
 enough and attach the output of:
-`/usr/libexec/iio-sensor-proxy -v -r`
-running as ```root```.
+
+Note that, before filing any issues against iio-sensor-proxy, you'll want
+to make doubly-sure that the IIO device actually works, using `iio_generic_buffer`
+(usually packaged as part of the `kernel-tools` package). For example, to
+test IIO sensor `0`:
+```sh
+sudo iio_generic_buffer -A -N 0
+```
 
 Accelerometer orientation
 -------------------------
