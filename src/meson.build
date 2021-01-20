@@ -25,6 +25,7 @@ sources = [
   'accel-mount-matrix.c',
   'accel-scale.c',
   'accel-attributes.c',
+  'utils.c',
   resources,
 ]
 

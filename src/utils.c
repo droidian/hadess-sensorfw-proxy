@@ -7,11 +7,15 @@
  *
  */
 
-#pragma once
+#include "utils.h"
 
-#include <glib.h>
-#include <gudev/gudev.h>
+char *
+get_device_file (GUdevDevice *device)
+{
+	if (!IS_TEST)
+		return g_udev_device_get_device_file (device);
 
-#define IS_TEST (g_getenv ("UMOCKDEV_DIR") != NULL)
-
-char *get_device_file (GUdevDevice *device);
+	return g_build_filename (g_getenv ("UMOCKDEV_DIR"),
+				 "iio-dev-data.bin",
+				 NULL);
+}
