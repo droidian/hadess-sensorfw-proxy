@@ -168,8 +168,10 @@ iio_buffer_accel_discover (GUdevDevice *device)
 
 	/* If we can't find an associated trigger, fallback to the iio-poll-accel driver */
 	trigger_name = get_trigger_name (device);
-	if (!trigger_name)
+	if (!trigger_name) {
+		g_debug ("Could not find trigger for %s", g_udev_device_get_sysfs_path (device));
 		return FALSE;
+	}
 	g_free (trigger_name);
 
 	g_debug ("Found IIO buffer accelerometer at %s", g_udev_device_get_sysfs_path (device));

@@ -157,8 +157,10 @@ iio_buffer_compass_open (GUdevDevice *device)
 
 	/* Get the trigger name, and build the channels from that */
 	trigger_name = get_trigger_name (device);
-	if (!trigger_name)
+	if (!trigger_name) {
+		g_debug ("Could not find trigger for %s", g_udev_device_get_sysfs_path (device));
 		return NULL;
+	}
 
 	buffer_data = buffer_drv_data_new (device, trigger_name);
 	if (!buffer_data)
