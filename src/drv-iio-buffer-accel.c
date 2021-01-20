@@ -9,6 +9,7 @@
 #include "drivers.h"
 #include "iio-buffer-utils.h"
 #include "accel-mount-matrix.h"
+#include "utils.h"
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -19,7 +20,7 @@ typedef struct {
 	guint              timeout_id;
 
 	GUdevDevice *dev;
-	const char *dev_path;
+	char *dev_path;
 	AccelVec3 *mount_matrix;
 	AccelLocation location;
 	int device_id;
@@ -92,7 +93,8 @@ prepare_output (SensorDevice *sensor_device,
 	/* Attempt to open non blocking to access dev */
 	fp = open (drv_data->dev_path, O_RDONLY | O_NONBLOCK);
 	if (fp == -1) { /* If it isn't there make the node */
-		g_warning ("Failed to open '%s' at %s: %s", sensor_device->name, drv_data->dev_path, g_strerror (errno));
+		if (!IS_TEST)
+			g_warning ("Failed to open '%s' at %s: %s", sensor_device->name, drv_data->dev_path, g_strerror (errno));
 		goto bail;
 	}
 
@@ -226,7 +228,7 @@ iio_buffer_accel_open (GUdevDevice *device)
 	drv_data->mount_matrix = setup_mount_matrix (device);
 	drv_data->location = setup_accel_location (device);
 	drv_data->dev = g_object_ref (device);
-	drv_data->dev_path = g_udev_device_get_device_file (device);
+	drv_data->dev_path = get_device_file (device);
 
 	return sensor_device;
 }
@@ -239,6 +241,7 @@ iio_buffer_accel_close (SensorDevice *sensor_device)
 	g_clear_pointer (&drv_data->buffer_data, buffer_drv_data_free);
 	g_clear_object (&drv_data->dev);
 	g_clear_pointer (&drv_data->mount_matrix, g_free);
+	g_clear_pointer (&drv_data->dev_path, g_free);
 	g_clear_pointer (&sensor_device->priv, g_free);
 	g_free (sensor_device);
 }
