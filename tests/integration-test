@@ -256,8 +256,8 @@ class Tests(dbusmock.DBusTestCase):
         self.assertEqual(self.get_dbus_property('LightLevelUnit'), 'vendor')
 
         self.testbed.set_attribute(hwmon, 'light', '(255,255)')
-        # DEFAULT_POLL_TIME is 8000
-        time.sleep(8)
+        # DEFAULT_POLL_TIME
+        time.sleep(0.5)
         self.assertEventually(lambda: self.get_dbus_property('LightLevel') == 100)
 
         # process = subprocess.Popen(['gdbus', 'introspect', '--system', '--dest', 'net.hadess.SensorProxy', '--object-path', '/net/hadess/SensorProxy'])

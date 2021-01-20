@@ -14,7 +14,9 @@
 #include <errno.h>
 #include <stdio.h>
 
-#define DEFAULT_POLL_TIME 8000
+#include "utils.h"
+
+#define DEFAULT_POLL_TIME (IS_TEST ? 500 : 8000)
 #define MAX_LIGHT_LEVEL   255
 
 typedef struct DrvData {
