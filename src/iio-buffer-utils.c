@@ -767,3 +767,23 @@ buffer_drv_data_new (GUdevDevice *device,
 	return buffer_data;
 }
 
+IIOSensorData *
+iio_sensor_data_new (gsize size)
+{
+	IIOSensorData *data;
+
+	g_return_val_if_fail (size != 0, NULL);
+
+	data = g_new0 (IIOSensorData, 1);
+	data->data = g_malloc0 (size);
+	return data;
+}
+
+void
+iio_sensor_data_free (IIOSensorData *data)
+{
+	if (data == NULL)
+		return;
+	g_free (data->data);
+	g_free (data);
+}

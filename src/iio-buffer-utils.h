@@ -29,6 +29,10 @@ typedef struct {
 	char    *data;
 } IIOSensorData;
 
+IIOSensorData *iio_sensor_data_new (gsize size);
+void iio_sensor_data_free (IIOSensorData *data);
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(IIOSensorData, iio_sensor_data_free)
+
 void process_scan_1                    (char              *data,
 				        BufferDrvData     *buffer_data,
 				        const char        *ch_name,
