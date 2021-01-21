@@ -59,19 +59,15 @@ write_sysfs_string (char *filename,
 {
 	int ret = 0;
 	g_autoptr(FILE) sysfsfp = NULL;
-	char *temp;
+	g_autofree char *temp = NULL;
 
 	temp = g_build_filename (basedir, filename, NULL);
 	sysfsfp = fopen (temp, "w");
 	if (sysfsfp == NULL) {
 		ret = -errno;
-		goto error_free;
+		return ret;
 	}
 	fprintf(sysfsfp, "%s", val);
-
-error_free:
-	g_free(temp);
-
 	return ret;
 }
 
@@ -118,7 +114,7 @@ static gboolean
 setup_uinput (OrientationData *data)
 {
 	struct uinput_dev dev;
-	int fd;
+	g_auto(IioFd) fd = -1;
 
 	fd = open("/dev/uinput", O_RDWR);
 	if (fd < 0) {
@@ -138,13 +134,13 @@ setup_uinput (OrientationData *data)
 
 	if (write (fd, &dev, sizeof(dev)) != sizeof(dev)) {
 		g_warning ("Error creating uinput device");
-		goto bail;
+		return FALSE;
 	}
 
 	/* enabling key events */
 	if (ioctl (fd, UI_SET_EVBIT, EV_ABS) < 0) {
 		g_warning ("Error enabling uinput absolute events");
-		goto bail;
+		return FALSE;
 	}
 
 	/* enabling keys */
@@ -152,22 +148,18 @@ setup_uinput (OrientationData *data)
 	    ioctl (fd, UI_SET_ABSBIT, ABS_Y) < 0 ||
 	    ioctl (fd, UI_SET_ABSBIT, ABS_Z) < 0) {
 		g_warning ("Couldn't enable uinput axis");
-		goto bail;
+		return FALSE;
 	}
 
 	/* creating the device */
 	if (ioctl (fd, UI_DEV_CREATE) < 0) {
 		g_warning ("Error creating uinput device");
-		goto bail;
+		return FALSE;
 	}
 
 	data->uinput = fd;
 
 	return TRUE;
-
-bail:
-	close (fd);
-	return FALSE;
 }
 
 static void
