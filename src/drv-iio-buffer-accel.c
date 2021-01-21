@@ -84,31 +84,29 @@ prepare_output (SensorDevice *sensor_device,
 		const char   *trigger_name)
 {
 	DrvData *drv_data = (DrvData *) sensor_device->priv;
-	IIOSensorData data;
+	g_autoptr(IIOSensorData) data = NULL;
 	g_auto(IioFd) fp = -1;
 
 	int buf_len = 127;
 
-	data.data = g_malloc0(drv_data->buffer_data->scan_size * buf_len);
+	data = iio_sensor_data_new (drv_data->buffer_data->scan_size * buf_len);
 
 	/* Attempt to open non blocking to access dev */
 	fp = open (drv_data->dev_path, O_RDONLY | O_NONBLOCK);
 	if (fp == -1) { /* If it isn't there make the node */
 		if (!IS_TEST)
 			g_warning ("Failed to open '%s' at %s: %s", sensor_device->name, drv_data->dev_path, g_strerror (errno));
-		goto bail;
+		return;
 	}
 
 	/* Actually read the data */
-	data.read_size = read (fp, data.data, buf_len * drv_data->buffer_data->scan_size);
-	if (data.read_size == -1 && errno == EAGAIN) {
+	data->read_size = read (fp, data->data, buf_len * drv_data->buffer_data->scan_size);
+	if (data->read_size == -1 && errno == EAGAIN) {
 		g_debug ("No new data available on '%s'", sensor_device->name);
-	} else {
-		process_scan (data, sensor_device);
+		return;
 	}
 
-bail:
-	g_free(data.data);
+	process_scan (*data, sensor_device);
 }
 
 static char *
