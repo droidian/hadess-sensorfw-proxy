@@ -8,6 +8,7 @@
 
 #include "drivers.h"
 #include "accel-mount-matrix.h"
+#include "utils.h"
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -121,7 +122,8 @@ accelerometer_changed (gpointer user_data)
 	DrvData *drv_data = (DrvData *) sensor_device->priv;
 	struct input_absinfo abs_info;
 	int accel_x = 0, accel_y = 0, accel_z = 0;
-	int fd, r;
+	g_auto(IioFd) fd = -1;
+	int r;
 	AccelReadings readings;
 	AccelVec3 tmp;
 
@@ -135,8 +137,6 @@ accelerometer_changed (gpointer user_data)
 	READ_AXIS(ABS_X, accel_x);
 	READ_AXIS(ABS_Y, accel_y);
 	READ_AXIS(ABS_Z, accel_z);
-
-	close (fd);
 
 	/* Scale from 1G ~= 256 to a value in m/s² */
 	set_accel_scale (&readings.scale, 1.0 / 256 * 9.81);

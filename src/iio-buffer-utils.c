@@ -2,7 +2,7 @@
  * Modified from industrialio buffer test code, and Lenovo Yoga (2 Pro) orientation helper
  * Copyright (c) 2008 Jonathan Cameron
  * Copyright (c) 2014 Peter F. Patel-Schneider
- * Copyright (c) 2014 Bastien Nocera <hadess@hadess.net>
+ * Copyright (c) 2014, 2021 Bastien Nocera <hadess@hadess.net>
  * Copyright (c) 2015 Elad Alfassa <elad@fedoraproject.org>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -11,6 +11,7 @@
  */
 
 #include "iio-buffer-utils.h"
+#include "utils.h"
 
 #include <fcntl.h>
 #include <string.h>
@@ -98,7 +99,7 @@ iioutils_get_type (unsigned   *is_signed,
 	char *filename;
 	char signchar, endianchar;
 	unsigned padint;
-	FILE *sysfsfp;
+	g_autoptr(FILE) sysfsfp = NULL;
 
 	builtname = g_strdup_printf ("%s_type", name);
 	filename = g_build_filename (device_dir, "scan_elements", builtname, NULL);
@@ -127,11 +128,9 @@ iioutils_get_type (unsigned   *is_signed,
 
 	if (ret < 0 || ret != 5) {
 		g_warning ("Failed to pass scan type description for %s", filename);
-		fclose (sysfsfp);
 		g_free (filename);
 		return FALSE;
 	}
-	fclose (sysfsfp);
 
 	*be = (endianchar == 'b');
 	*bytes = padint / 8;
@@ -156,7 +155,7 @@ iioutils_get_param_float (float      *output,
 			  const char *name,
 			  const char *generic_name)
 {
-	FILE *sysfsfp;
+	g_autoptr(FILE) sysfsfp = NULL;
 	char *builtname, *filename;
 	int ret = 0;
 
@@ -169,7 +168,6 @@ iioutils_get_param_float (float      *output,
 	sysfsfp = fopen (filename, "r");
 	if (sysfsfp) {
 		ret = fscanf (sysfsfp, "%f", output);
-		fclose (sysfsfp);
 		g_free (filename);
 		if (ret == 1)
 			return 0;
@@ -191,7 +189,6 @@ iioutils_get_param_float (float      *output,
 			g_debug ("Failed to read float from %s", filename);
 			ret = -EINVAL;
 		}
-		fclose (sysfsfp);
 	} else {
 		ret = -errno;
 		if (ret != -ENOENT)
@@ -228,7 +225,6 @@ build_channel_array (const char        *device_dir,
 		     int               *counter)
 {
 	GDir *dp;
-	FILE *sysfsfp;
 	int ret;
 	const char *name;
 	char *scan_el_dir;
@@ -251,6 +247,7 @@ build_channel_array (const char        *device_dir,
 
 	while ((name = g_dir_read_name (dp)) != NULL) {
 		if (g_str_has_suffix (name, "_en")) {
+			g_autoptr(FILE) sysfsfp = NULL;
 			char *filename, *index_name;
 			iio_channel_info *current;
 
@@ -262,13 +259,12 @@ build_channel_array (const char        *device_dir,
 				continue;
 			}
 			if (fscanf (sysfsfp, "%d", &ret) != 1) {
-				fclose (sysfsfp);
 				g_debug ("Could not read from scan_elements file '%s'", filename);
 				g_free (filename);
 				continue;
 			}
-			fclose (sysfsfp);
 			g_free (filename);
+			g_clear_pointer (&sysfsfp, fclose);
 
 			current = g_new0 (iio_channel_info, 1);
 
@@ -288,7 +284,6 @@ build_channel_array (const char        *device_dir,
 			if (sysfsfp == NULL)
 				goto error;
 			ret = fscanf (sysfsfp, "%u", &current->index);
-			fclose (sysfsfp);
 			g_free (filename);
 			if (ret != 1)
 				goto error;
@@ -361,7 +356,7 @@ _write_sysfs_int (const char *filename,
 		  int         val2)
 {
 	int ret = 0;
-	FILE *sysfsfp;
+	g_autoptr(FILE) sysfsfp = NULL;
 	int test;
 	char *temp;
 	temp = g_build_filename (basedir, filename, NULL);
@@ -375,8 +370,8 @@ _write_sysfs_int (const char *filename,
 		fprintf(sysfsfp, "%d %d", val, val2);
 	else
 		fprintf(sysfsfp, "%d", val);
+	g_clear_pointer (&sysfsfp, fclose);
 
-	fclose(sysfsfp);
 	if (verify) {
 		sysfsfp = fopen(temp, "r");
 		if (sysfsfp == NULL) {
@@ -390,7 +385,6 @@ _write_sysfs_int (const char *filename,
 				   val, temp);
 			ret = -1;
 		}
-		fclose(sysfsfp);
 	}
 error_free:
 	g_free (temp);
@@ -412,7 +406,7 @@ _write_sysfs_string (const char *filename,
 		     int         verify)
 {
 	int ret = 0;
-	FILE *sysfsfp;
+	g_autoptr(FILE) sysfsfp = NULL;
 	char *temp;
 
 	temp = g_build_filename (basedir, filename, NULL);
@@ -422,7 +416,7 @@ _write_sysfs_string (const char *filename,
 		goto error_free;
 	}
 	fprintf(sysfsfp, "%s", val);
-	fclose(sysfsfp);
+	g_clear_pointer (&sysfsfp, fclose);
 
 	/* Verify? */
 	if (!verify)
@@ -438,7 +432,6 @@ _write_sysfs_string (const char *filename,
 			   temp, val, basedir, filename);
 		ret = -1;
 	}
-	fclose(sysfsfp);
 
 error_free:
 	g_free(temp);

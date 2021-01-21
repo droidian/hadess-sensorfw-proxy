@@ -85,8 +85,9 @@ prepare_output (SensorDevice *sensor_device,
 {
 	DrvData *drv_data = (DrvData *) sensor_device->priv;
 	IIOSensorData data;
+	g_auto(IioFd) fp = -1;
 
-	int fp, buf_len = 127;
+	int buf_len = 127;
 
 	data.data = g_malloc0(drv_data->buffer_data->scan_size * buf_len);
 
@@ -105,8 +106,6 @@ prepare_output (SensorDevice *sensor_device,
 	} else {
 		process_scan (data, sensor_device);
 	}
-
-	close(fp);
 
 bail:
 	g_free(data.data);

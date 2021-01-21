@@ -18,6 +18,7 @@
 
 #include <gudev/gudev.h>
 #include "uinput.h"
+#include "utils.h"
 
 #define ONEG 256
 
@@ -57,7 +58,7 @@ write_sysfs_string (char *filename,
 		     char *val)
 {
 	int ret = 0;
-	FILE *sysfsfp;
+	g_autoptr(FILE) sysfsfp = NULL;
 	char *temp;
 
 	temp = g_build_filename (basedir, filename, NULL);
@@ -67,7 +68,6 @@ write_sysfs_string (char *filename,
 		goto error_free;
 	}
 	fprintf(sysfsfp, "%s", val);
-	fclose(sysfsfp);
 
 error_free:
 	g_free(temp);
