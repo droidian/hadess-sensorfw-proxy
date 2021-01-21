@@ -13,7 +13,7 @@ char *
 get_device_file (GUdevDevice *device)
 {
 	if (!IS_TEST)
-		return g_udev_device_get_device_file (device);
+		return g_strdup (g_udev_device_get_device_file (device));
 
 	return g_build_filename (g_getenv ("UMOCKDEV_DIR"),
 				 "iio-dev-data.bin",
