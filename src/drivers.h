@@ -19,27 +19,6 @@ typedef enum {
 	DRIVER_TYPE_PROXIMITY,
 } DriverType;
 
-/* Driver types */
-typedef enum {
-	DRIVER_TYPE_ACCEL_IIO,
-	DRIVER_TYPE_ACCEL_INPUT
-} DriverAccelType;
-
-typedef enum {
-	DRIVER_TYPE_LIGHT_IIO,
-	DRIVER_TYPE_LIGHT_FAKE,
-	DRIVER_TYPE_LIGHT_HWMON
-} DriverLightType;
-
-typedef enum {
-  DRIVER_TYPE_COMPASS_IIO,
-  DRIVER_TYPE_COMPASS_FAKE
-} DriverTypeCompass;
-
-typedef enum {
-  DRIVER_TYPE_PROXIMITY_IIO,
-} DriverTypeProximity;
-
 typedef enum {
   PROXIMITY_NEAR_ERROR = -1,
   PROXIMITY_NEAR_FALSE =  0,
