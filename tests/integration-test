@@ -61,10 +61,12 @@ class Tests(dbusmock.DBusTestCase):
         builddir = os.getenv('top_builddir', '.')
         if os.access(os.path.join(builddir, 'src', 'iio-sensor-proxy'), os.X_OK):
             cls.daemon_path = os.path.join(builddir, 'src', 'iio-sensor-proxy')
+            cls.monitor_sensor_path = os.path.join(builddir, 'src', 'monitor-sensor')
             print('Testing binaries from local build tree (%s)' % cls.daemon_path)
         elif os.environ.get('UNDER_JHBUILD', False):
             jhbuild_prefix = os.environ['JHBUILD_PREFIX']
             cls.daemon_path = os.path.join(jhbuild_prefix, 'libexec', 'iio-sensor-proxy')
+            cls.monitor_sensor_path = os.path.join(jhbuild_prefix, 'bin', 'monitor-sensor')
             print('Testing binaries from JHBuild (%s)' % cls.daemon_path)
         else:
             cls.daemon_path = None
@@ -74,6 +76,7 @@ class Tests(dbusmock.DBusTestCase):
                         cls.daemon_path = line.split('=', 1)[1].strip()
                         break
             assert cls.daemon_path, 'could not determine daemon path from systemd .service file'
+            cls.monitor_sensor_path = '/usr/bin/monitor-sensor'
             print('Testing installed system binary (%s)' % cls.daemon_path)
 
         # fail on CRITICALs on client and server side
@@ -483,6 +486,40 @@ class Tests(dbusmock.DBusTestCase):
         time.sleep(1)
         self.assertEqual(self.get_dbus_property('AccelerometerOrientation'), 'normal')
         os.remove(mock_dev_data)
+
+        self.stop_daemon()
+
+    def test_unrequested_readings(self):
+        '''unrequested property updates'''
+        self.testbed.add_device('input', 'fake-light', None,
+            [],
+            ['NAME', '"Power Button"']
+        )
+        env = os.environ.copy()
+        env['FAKE_LIGHT_SENSOR'] = '1'
+        self.start_daemon(env)
+        self.assertEqual(self.get_dbus_property('HasAmbientLight'), True)
+
+        ctx = GLib.main_context_default()
+
+        self.proxy.ClaimLight()
+        self.assertEventually(lambda: int(self.get_dbus_property('LightLevel')) == 1.0)
+        self.proxy.ReleaseLight()
+
+        self.assertEqual(self.get_dbus_property('LightLevel'), 1.0)
+
+        monitor = subprocess.Popen(self.monitor_sensor_path)
+        self.assertEventually(lambda: int(self.get_dbus_property('LightLevel')) == 2.0)
+        monitor.kill()
+
+        # Catch up with main loop signals
+        while ctx.pending():
+            ctx.iteration(True)
+
+        # We shouldn't have received light level properties updates
+        res = self.proxy.get_cached_property('LightLevel')
+        self.assertEqual(res.unpack(), 1.0)
+        self.assertTrue(int(self.get_dbus_property('LightLevel') > 1.0))
 
         self.stop_daemon()
 
