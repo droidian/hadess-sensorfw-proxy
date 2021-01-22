@@ -23,6 +23,7 @@ import sys
 import dbus
 import tempfile
 import subprocess
+import psutil
 import unittest
 import time
 
@@ -176,6 +177,8 @@ class Tests(dbusmock.DBusTestCase):
 
         if self.daemon:
             try:
+                for child in psutil.Process(self.daemon.pid).children(recursive=True):
+                    child.kill()
                 self.daemon.kill()
             except OSError:
                 pass
