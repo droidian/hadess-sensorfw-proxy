@@ -267,7 +267,7 @@ class Tests(dbusmock.DBusTestCase):
 
     def test_fake_light(self):
         '''fake light'''
-        hwmon = self.testbed.add_device('input', 'fake-light', None,
+        self.testbed.add_device('input', 'fake-light', None,
             [],
             ['NAME', '"Power Button"']
         )
@@ -347,7 +347,7 @@ class Tests(dbusmock.DBusTestCase):
 
     def test_iio_poll_light(self):
         '''iio poll light'''
-        hwmon = self.testbed.add_device('iio', 'iio-als', None,
+        iio = self.testbed.add_device('iio', 'iio-als', None,
             ['integration_time', '1',
              'in_illuminance_input', '10',
              'in_illuminance_scale', '1.0'],
@@ -366,7 +366,7 @@ class Tests(dbusmock.DBusTestCase):
         self.assertEventually(lambda: int(self.get_dbus_property('LightLevel')) == 10)
         self.assertEqual(self.get_dbus_property('LightLevelUnit'), 'lux')
 
-        self.testbed.set_attribute(hwmon, 'in_illuminance_input', '30')
+        self.testbed.set_attribute(iio, 'in_illuminance_input', '30')
         self.assertEventually(lambda: self.get_dbus_property('LightLevel') == 30)
 
         self.stop_daemon()
