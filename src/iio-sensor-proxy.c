@@ -329,8 +329,10 @@ client_release (SensorData            *data,
 	ht = data->clients[driver_type];
 
 	watch_id = GPOINTER_TO_UINT (g_hash_table_lookup (ht, sender));
-	if (watch_id == 0)
+	if (watch_id == 0) {
+		g_debug ("Sender '%s' already released device, no-op", sender);
 		return;
+	}
 
 	g_hash_table_remove (ht, sender);
 
@@ -391,6 +393,7 @@ handle_generic_method_call (SensorData            *data,
 	if (g_str_has_prefix (method_name, "Claim")) {
 		watch_id = GPOINTER_TO_UINT (g_hash_table_lookup (ht, sender));
 		if (watch_id > 0) {
+			g_debug ("Sender '%s' already claimed device, no-op", sender);
 			g_dbus_method_invocation_return_value (invocation, NULL);
 			return;
 		}
