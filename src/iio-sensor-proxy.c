@@ -186,19 +186,36 @@ typedef enum {
 #define PROP_ALL_COMPASS (PROP_HAS_COMPASS | \
 			  PROP_COMPASS_HEADING)
 
+static PropertiesMask
+mask_for_sensor_type (DriverType sensor_type)
+{
+	switch (sensor_type) {
+	case DRIVER_TYPE_ACCEL:
+		return PROP_HAS_ACCELEROMETER |
+			PROP_ACCELEROMETER_ORIENTATION;
+	case DRIVER_TYPE_LIGHT:
+		return PROP_HAS_AMBIENT_LIGHT |
+			PROP_LIGHT_LEVEL;
+	case DRIVER_TYPE_COMPASS:
+		return PROP_HAS_COMPASS |
+			PROP_COMPASS_HEADING;
+	case DRIVER_TYPE_PROXIMITY:
+		return PROP_HAS_PROXIMITY |
+			PROP_PROXIMITY_NEAR;
+	default:
+		g_assert_not_reached ();
+	}
+}
+
 static void
-send_dbus_event (SensorData     *data,
-		 PropertiesMask  mask)
+send_dbus_event_for_client (SensorData     *data,
+			    const char     *destination_bus_name,
+			    PropertiesMask  mask)
 {
 	GVariantBuilder props_builder;
 	GVariant *props_changed = NULL;
 
-	g_assert (data->connection);
-
-	if (mask == 0)
-		return;
-
-	g_assert ((mask & PROP_ALL) == 0 || (mask & PROP_ALL_COMPASS) == 0);
+	g_return_if_fail (destination_bus_name != NULL);
 
 	g_variant_builder_init (&props_builder, G_VARIANT_TYPE ("a{sv}"));
 
@@ -279,11 +296,48 @@ send_dbus_event (SensorData     *data,
 				       g_variant_new_strv (NULL, 0));
 
 	g_dbus_connection_emit_signal (data->connection,
-				       NULL,
+				       destination_bus_name,
 				       (mask & PROP_ALL) ? SENSOR_PROXY_DBUS_PATH : SENSOR_PROXY_COMPASS_DBUS_PATH,
 				       "org.freedesktop.DBus.Properties",
 				       "PropertiesChanged",
 				       props_changed, NULL);
+}
+
+static void
+send_dbus_event (SensorData     *data,
+		 PropertiesMask  mask)
+{
+	GHashTable *ht;
+	guint i;
+	GHashTableIter iter;
+	gpointer key, value;
+
+	g_assert (mask != 0);
+	g_assert (data->connection);
+	g_assert ((mask & PROP_ALL) == 0 || (mask & PROP_ALL_COMPASS) == 0);
+
+	/* Make a list of the events each client for each sensor
+	 * is interested in */
+	ht = g_hash_table_new (g_str_hash, g_str_equal);
+	for (i = 0; i < NUM_SENSOR_TYPES; i++) {
+		GList *clients, *l;
+
+		clients = g_hash_table_get_keys (data->clients[i]);
+		for (l = clients; l != NULL; l = l->next) {
+			PropertiesMask m, new_mask;
+
+			/* Already have a mask? */
+			m = GPOINTER_TO_UINT (g_hash_table_lookup (ht, l->data));
+			new_mask = mask & mask_for_sensor_type (i);
+			m |= new_mask;
+			g_hash_table_insert (ht, l->data, GUINT_TO_POINTER (m));
+		}
+	}
+
+	g_hash_table_iter_init (&iter, ht);
+	while (g_hash_table_iter_next (&iter, &key, &value))
+		send_dbus_event_for_client (data, (const char *) key, GPOINTER_TO_UINT (value));
+	g_hash_table_destroy (ht);
 }
 
 static void
