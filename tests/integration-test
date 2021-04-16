@@ -322,6 +322,32 @@ class Tests(dbusmock.DBusTestCase):
 
         self.stop_daemon()
 
+    def test_iio_accel_base_location(self):
+        '''iio accel base location'''
+
+        self.testbed.add_device('iio', 'iio-accel', None,
+            ['in_accel_x_raw', '0',
+             'in_accel_y_raw', '-25.6',
+             'in_accel_z_raw', '0',
+             'in_accel_scale', '10',
+             'label', 'accel-base',
+             'sampling_frequency', '5.2',
+             'name', 'IIO Test Accelerometer'],
+            ['NAME', '"IIO Accelerometer"',
+             'IIO_SENSOR_PROXY_TYPE', 'iio-poll-accel']
+        )
+        self.testbed.add_device('input', 'fake-compass', None,
+            [],
+            ['NAME', '"Power Button"']
+        )
+        env = os.environ.copy()
+        env['FAKE_COMPASS'] = '1'
+
+        self.start_daemon(env)
+        self.assertEqual(self.get_compass_dbus_property('HasCompass'), True)
+        self.assertEqual(self.get_dbus_property('HasAccelerometer'), False)
+        self.stop_daemon()
+
     def test_iio_poll_accel(self):
         '''iio poll accel'''
         accel = self.testbed.add_device('iio', 'iio-accel', None,
