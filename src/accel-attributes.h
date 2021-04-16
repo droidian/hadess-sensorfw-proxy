@@ -22,5 +22,7 @@ AccelLocation setup_accel_location (GUdevDevice *device);
 
 gboolean parse_accel_location (const char    *location,
                                AccelLocation *value);
+gboolean parse_accel_label (const char    *location,
+                            AccelLocation *value);
 
 gboolean get_accel_scale (GUdevDevice *device, AccelScale *scale_vec);

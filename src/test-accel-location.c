@@ -13,6 +13,28 @@
 #define VALID_BASE_LOCATION "base"
 #define INVALID_LOCATION "invalid"
 
+#define VALID_DISPLAY_LOCATION_LABEL "accel-display"
+#define VALID_BASE_LOCATION_LABEL "accel-base"
+#define INVALID_LOCATION_LABEL "proximity-foo-bar"
+
+static void
+test_accel_label (void)
+{
+	AccelLocation location;
+
+	/* display location */
+	g_assert_true (parse_accel_label (VALID_DISPLAY_LOCATION_LABEL, &location));
+	g_assert_true (location == ACCEL_LOCATION_DISPLAY);
+
+	/* base location */
+	g_assert_true (parse_accel_label (VALID_BASE_LOCATION_LABEL, &location));
+	g_assert_true (location == ACCEL_LOCATION_BASE);
+
+	/* invalid label */
+	g_assert_false (parse_accel_location (NULL, &location));
+	g_assert_false (parse_accel_location (INVALID_LOCATION_LABEL, &location));
+}
+
 static void
 test_accel_location (void)
 {
@@ -41,6 +63,7 @@ int main (int argc, char **argv)
 	g_test_init (&argc, &argv, NULL);
 
 	g_test_add_func ("/iio-sensor-proxy/accel-location", test_accel_location);
+	g_test_add_func ("/iio-sensor-proxy/accel-label", test_accel_label);
 
 	return g_test_run ();
 }

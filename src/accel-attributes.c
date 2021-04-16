@@ -24,6 +24,11 @@ setup_accel_location (GUdevDevice *device)
 		g_warning ("Failed to parse ACCEL_LOCATION ('%s') from udev",
 			   location);
 	}
+	location = g_udev_device_get_sysfs_attr (device, "label");
+	if (location) {
+		if (parse_accel_label (location, &ret))
+			return ret;
+	}
 	location = g_udev_device_get_sysfs_attr (device, "location");
 	if (location) {
 		if (parse_accel_location (location, &ret))
@@ -36,6 +41,23 @@ setup_accel_location (GUdevDevice *device)
 
 	ret = ACCEL_LOCATION_DISPLAY;
 	return ret;
+}
+
+gboolean
+parse_accel_label (const char *location, AccelLocation *value)
+{
+	if (location == NULL ||
+	    *location == '\0')
+		return FALSE;
+	if (g_str_equal (location, "accel-base")) {
+		*value = ACCEL_LOCATION_BASE;
+		return TRUE;
+	} else if (g_str_equal (location, "accel-display")) {
+		*value = ACCEL_LOCATION_DISPLAY;
+		return TRUE;
+	}
+	g_debug ("Failed to parse label '%s' as a location", location);
+	return FALSE;
 }
 
 gboolean
