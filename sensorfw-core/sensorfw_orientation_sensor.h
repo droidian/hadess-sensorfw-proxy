@@ -18,26 +18,26 @@
 
 #pragma once
 
-#include "accelerometer_sensor.h"
+#include "orientation_sensor.h"
 #include "sensorfw_common.h"
 
 namespace repowerd
 {
 
-class SensorfwAccelerometerSensor : public AccelerometerSensor, public Sensorfw
+class SensorfwOrientationSensor : public OrientationSensor, public Sensorfw
 {
 public:
-    SensorfwAccelerometerSensor(std::shared_ptr<Log> const& log,
+    SensorfwOrientationSensor(std::shared_ptr<Log> const& log,
                         std::string const& dbus_bus_address);
 
-    HandlerRegistration register_accelerometer_handler(AccelerometerHandler const& handler) override;
+    HandlerRegistration register_orientation_handler(OrientationHandler const& handler) override;
 
-    void enable_accelerometer_events() override;
-    void disable_accelerometer_events() override;
+    void enable_orientation_events() override;
+    void disable_orientation_events() override;
 private:
     void data_recived_impl() override;
 
-    AccelerometerHandler handler;
+    OrientationHandler handler;
 };
 
 }

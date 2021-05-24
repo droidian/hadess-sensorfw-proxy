@@ -25,7 +25,7 @@
 #include "sensorfw-core/console_log.h"
 #include "sensorfw-core/sensorfw_proximity_sensor.h"
 #include "sensorfw-core/sensorfw_light_sensor.h"
-#include "sensorfw-core/sensorfw_accelerometer_sensor.h"
+#include "sensorfw-core/sensorfw_orientation_sensor.h"
 #include "sensorfw-core/sensorfw_compass_sensor.h"
 
 #define SENSOR_PROXY_DBUS_NAME          "net.hadess.SensorProxy"
@@ -53,10 +53,10 @@ typedef struct {
 
 	GHashTable   *clients[NUM_SENSOR_TYPES]; /* key = D-Bus name, value = watch ID */
 
-	/* Accelerometer */
+	/* Orientation */
 	OrientationUp previous_orientation;
 	gboolean accel_avaliable;
-	std::shared_ptr<repowerd::AccelerometerSensor> accelerometer_sensor;
+	std::shared_ptr<repowerd::OrientationSensor> orientation_sensor;
 
 	/* Light */
 	gdouble previous_level;
@@ -615,14 +615,14 @@ setup_sensors (SensorData *data)
 
 	try
 	{
-		data->accelerometer_sensor = std::make_shared<repowerd::SensorfwAccelerometerSensor>(log,
+		data->orientation_sensor = std::make_shared<repowerd::SensorfwOrientationSensor>(log,
 			the_dbus_bus_address());
 		data->accel_avaliable = TRUE;
 		send_dbus_event(data, PROP_HAS_ACCELEROMETER);
 	}
 	catch (std::exception const &e)
 	{
-		log->log(log_tag, "Failed to create SensorfwAccelerometerSensor: %s", e.what());
+		log->log(log_tag, "Failed to create SensorfwOrientationSensor: %s", e.what());
 		data->accel_avaliable = FALSE;
 	}
 
@@ -655,7 +655,7 @@ int main (int argc, char **argv)
 	setup_sensors(data);
 	repowerd::HandlerRegistration prox_registration;
 	repowerd::HandlerRegistration light_registration;
-	repowerd::HandlerRegistration accelerometer_registration;
+	repowerd::HandlerRegistration orientation_registration;
 	repowerd::HandlerRegistration compass_registration;
 	if (data->prox_avaliable == TRUE) {
 		prox_registration = data->proximity_sensor->register_proximity_handler(
@@ -676,16 +676,39 @@ int main (int argc, char **argv)
 		data->light_sensor->enable_light_events();
 	}
 	if (data->prox_avaliable == TRUE) {
-		accelerometer_registration = data->accelerometer_sensor->register_accelerometer_handler(
-			[data](repowerd::AccelerometerData readings) {
+		orientation_registration = data->orientation_sensor->register_orientation_handler(
+			[data](repowerd::OrientationData value) {
 				OrientationUp orientation = data->previous_orientation;
-				orientation = orientation_calc(data->previous_orientation, readings.accel_x, readings.accel_y, readings.accel_z, 1 / 101.971621298);
+				switch (value)
+				{
+				case repowerd::OrientationData::LeftUp:
+					orientation = ORIENTATION_LEFT_UP;
+					break;
+				case repowerd::OrientationData::RightUp:
+					orientation = ORIENTATION_RIGHT_UP;
+					break;
+				case repowerd::OrientationData::BottomUp:
+					orientation = ORIENTATION_BOTTOM_UP;
+					break;
+				case repowerd::OrientationData::BottomDown:
+					orientation = ORIENTATION_NORMAL;
+					break;
+				case repowerd::OrientationData::FaceDown:
+					orientation = ORIENTATION_NORMAL;
+					break;
+				case repowerd::OrientationData::FaceUp:
+					orientation = ORIENTATION_NORMAL;
+					break;
+				default:
+					orientation = ORIENTATION_UNDEFINED;
+					break;
+				}
 				if (data->previous_orientation != orientation) {
 					data->previous_orientation = orientation;
 					send_dbus_event(data, PROP_ACCELEROMETER_ORIENTATION);
 				}
 			});
-		data->accelerometer_sensor->enable_accelerometer_events();
+		data->orientation_sensor->enable_orientation_events();
 	}
 	if (data->compass_avaliable == TRUE) {
 		compass_registration = data->compass_sensor->register_compass_handler(
@@ -706,7 +729,7 @@ int main (int argc, char **argv)
 	if (data->light_avaliable == TRUE)
 		data->light_sensor->disable_light_events();
 	if (data->accel_avaliable == TRUE)
-		data->accelerometer_sensor->disable_accelerometer_events();
+		data->orientation_sensor->disable_orientation_events();
 	if (data->compass_avaliable == TRUE)
 		data->compass_sensor->disable_compass_events();
 

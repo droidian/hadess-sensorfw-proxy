@@ -16,7 +16,7 @@
  * Authored by: Marius Gripsgard <marius@ubports.com>
  */
 
-#include "sensorfw_accelerometer_sensor.h"
+#include "sensorfw_orientation_sensor.h"
 #include "event_loop_handler_registration.h"
 
 #include "socketreader.h"
@@ -25,19 +25,19 @@
 
 namespace
 {
-auto const null_handler = [](repowerd::AccelerometerData){};
+auto const null_handler = [](repowerd::OrientationData){};
 }
 
-repowerd::SensorfwAccelerometerSensor::SensorfwAccelerometerSensor(
-    std::shared_ptr<Log> const& log,
-    std::string const& dbus_bus_address)
-    : Sensorfw(log, dbus_bus_address, "Accelerometer", PluginType::ACCELEROMETER),
+repowerd::SensorfwOrientationSensor::SensorfwOrientationSensor(
+    std::shared_ptr<Log> const &log,
+    std::string const &dbus_bus_address)
+    : Sensorfw(log, dbus_bus_address, "Orientation", PluginType::ORIENTATION),
       handler{null_handler}
 {
 }
 
-repowerd::HandlerRegistration repowerd::SensorfwAccelerometerSensor::register_accelerometer_handler(
-    AccelerometerHandler const& handler)
+repowerd::HandlerRegistration repowerd::SensorfwOrientationSensor::register_orientation_handler(
+    OrientationHandler const &handler)
 {
     return EventLoopHandlerRegistration{
         dbus_event_loop,
@@ -45,7 +45,7 @@ repowerd::HandlerRegistration repowerd::SensorfwAccelerometerSensor::register_ac
         [this]{ this->handler = null_handler; }};
 }
 
-void repowerd::SensorfwAccelerometerSensor::enable_accelerometer_events()
+void repowerd::SensorfwOrientationSensor::enable_orientation_events()
 {
     dbus_event_loop.enqueue(
         [this]
@@ -54,7 +54,7 @@ void repowerd::SensorfwAccelerometerSensor::enable_accelerometer_events()
         }).get();
 }
 
-void repowerd::SensorfwAccelerometerSensor::disable_accelerometer_events()
+void repowerd::SensorfwOrientationSensor::disable_orientation_events()
 {
     dbus_event_loop.enqueue(
         [this]
@@ -63,14 +63,12 @@ void repowerd::SensorfwAccelerometerSensor::disable_accelerometer_events()
         }).get();
 }
 
-void repowerd::SensorfwAccelerometerSensor::data_recived_impl()
+void repowerd::SensorfwOrientationSensor::data_recived_impl()
 {
-    QVector<AccelerationData> values;
-    repowerd::AccelerometerData output;
-    if(m_socket->read<AccelerationData>(values)) {
-        output.accel_x = values[0].x_;
-        output.accel_y = values[0].y_;
-        output.accel_z = values[0].z_;
+    QVector<PoseData> values;
+    repowerd::OrientationData output;
+    if(m_socket->read<PoseData>(values)) {
+        output = (repowerd::OrientationData) values[0].orientation_;
     }
 
     handler(output);

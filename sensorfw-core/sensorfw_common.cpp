@@ -68,7 +68,7 @@ const char* repowerd::Sensorfw::plugin_string() const
     switch (m_plugin) {
         case PluginType::LIGHT: return "alssensor";
         case PluginType::PROXIMITY: return "proximitysensor";
-        case PluginType::ACCELEROMETER: return "accelerometersensor";
+        case PluginType::ORIENTATION: return "orientationsensor";
         case PluginType::COMPASS: return "compasssensor";
     }
 
@@ -80,7 +80,7 @@ const char* repowerd::Sensorfw::plugin_interface() const
     switch (m_plugin) {
         case PluginType::LIGHT: return "local.ALSSensor";
         case PluginType::PROXIMITY: return "local.ProximitySensor";
-        case PluginType::ACCELEROMETER: return "local.AccelerometerSensor";
+        case PluginType::ORIENTATION: return "local.OrientationSensor";
         case PluginType::COMPASS: return "local.CompassSensor";
     }
 

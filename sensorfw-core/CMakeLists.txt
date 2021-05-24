@@ -4,7 +4,7 @@ add_library(
     sensorfw_common.cpp
     sensorfw_light_sensor.cpp
     sensorfw_proximity_sensor.cpp
-    sensorfw_accelerometer_sensor.cpp
+    sensorfw_orientation_sensor.cpp
     sensorfw_compass_sensor.cpp
 
     socketreader.cpp

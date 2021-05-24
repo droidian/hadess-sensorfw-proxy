@@ -84,35 +84,72 @@ public:
 };
 
 /**
- * Class for vector type measurement data (timestamp, x, y, z).
+ * Datatype for device pose interpretation.
  */
-class TimedXyzData : public TimedData
-{
+class PoseData : public TimedData {
 public:
     /**
-     * Constructor.
+     * Possible device postures.
+     * @note The interpretation algorithm for orientation currently relies on the
+     *       integer values of the enumeration. Thus changing the names for the
+     *       orientation states is completely ok (for sensord, client apps may
+     *       disagree). Possible new values must be appended to the list and the
+     *       order of values must not be changed!
+     *
+     * Device side naming:
+     * @verbatim
+                          Top
+                      ----------
+                     /  NOKIA  /|
+                    /-------- / |
+                   //       //  /
+                  //       //  /
+          Left   //  Face //  /    Right
+                //       //  /
+               //       //  /
+              /---------/  /
+             /    O    /  /
+            /         /  /
+            ----------  /
+            |_________!/
+              Bottom
+       @endverbatim
      */
-    TimedXyzData() : TimedData(0), x_(0), y_(0), z_(0) {}
+
+    /**
+     * Device orientation.
+     */
+    enum Orientation
+    {
+        Undefined = 0, /**< Orientation is unknown. */
+        LeftUp,        /**< Device left side is up */
+        RightUp,       /**< Device right side is up */
+        BottomUp,      /**< Device bottom is up */
+        BottomDown,    /**< Device bottom is down */
+        FaceDown,      /**< Device face is down */
+        FaceUp         /**< Device face is up */
+    };
+
+    PoseData::Orientation orientation_; /**< Device Orientation */
 
     /**
      * Constructor.
-     *
-     * @param timestamp monotonic time (microsec)
-     * @param x X coordinate.
-     * @param y Y coordinate.
-     * @param z Z coordinate.
      */
-    TimedXyzData(const quint64& timestamp, int x, int y, int z) : TimedData(timestamp), x_(x), y_(y), z_(z) {}
+    PoseData() : TimedData(0), orientation_(Undefined) {}
 
-    int x_; /**< X value */
-    int y_; /**< Y value */
-    int z_; /**< Z value */
+    /**
+     * Constructor.
+     * @param orientation Initial value for orientation.
+     */
+    PoseData(Orientation orientation) : TimedData(0), orientation_(orientation) {}
+
+    /**
+     * Constructor
+     * @param timestamp Initial value for timestamp.
+     * @param orientation Initial value for orientation.
+     */
+    PoseData(const quint64& timestamp, Orientation orientation) : TimedData(timestamp), orientation_(orientation) {}
 };
-
-/**
- * Accelerometer mesurement data.
- */
-typedef TimedXyzData AccelerationData;
 
 /**
  * Datatype for compass measurements.

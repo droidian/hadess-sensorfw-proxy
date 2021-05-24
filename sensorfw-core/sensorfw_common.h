@@ -35,7 +35,7 @@ public:
     {
         LIGHT,
         PROXIMITY,
-        ACCELEROMETER,
+        ORIENTATION,
         COMPASS
     };
 
