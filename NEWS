@@ -1,3 +1,16 @@
+3.1
+---
+
+This release includes a number of changes related to the maintenance
+of the project, including porting to meson as a build system, and
+adding a test suite. A long-standing problem with property changes
+being sent as a broadcast was also fixed, now only programs which register
+will receive notifications.
+
+This release also fixes sensor support for accelerometers with different
+scales on different axis, adds support for RGBC light sensors, and reads
+the proximity threshold from sysfs for DeviceTree devices.
+
 3.0
 ---
 
