@@ -30,7 +30,8 @@ build_stable:
     - ninja -v -C _build dist
     - meson test -C _build
   artifacts:
-    when: on_failure
+    when: always
     name: "iio-sensor-proxy-${CI_COMMIT_REF_NAME}"
     paths:
       - "${CI_PROJECT_DIR}/_build/meson-logs"
+      - "${CI_PROJECT_DIR}/_build/meson-dist"
