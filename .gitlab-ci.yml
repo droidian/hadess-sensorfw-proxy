@@ -19,6 +19,8 @@ variables:
 build_stable:
   before_script:
     - dnf upgrade -y --nogpgcheck fedora-release fedora-repos*
+    # Work-around uninstallable python-dbusmock
+    - dnf install -y https://kojipkgs.fedoraproject.org//packages/python-dbusmock/0.23.0/1.fc35/noarch/python3-dbusmock-0.23.0-1.fc35.noarch.rpm
     - dnf update -y && dnf install -y $DEPENDENCIES
   script:
     - meson -Dgtk_doc=true -Dgtk-tests=true _build
