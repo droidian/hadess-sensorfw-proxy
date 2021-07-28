@@ -530,6 +530,22 @@ name_lost_handler (GDBusConnection *connection,
 }
 
 static void
+send_sensor_availability (SensorData *data)
+{
+	if (data->prox_avaliable)
+		send_dbus_event (data, PROP_HAS_PROXIMITY);
+
+	if (data->light_avaliable)
+		send_dbus_event (data, PROP_HAS_AMBIENT_LIGHT);
+
+	if (data->accel_avaliable)
+		send_dbus_event (data, PROP_HAS_ACCELEROMETER);
+
+	if (data->compass_avaliable)
+		send_dbus_event (data, PROP_HAS_COMPASS);
+}
+
+static void
 bus_acquired_handler (GDBusConnection *connection,
 		      const gchar     *name,
 		      gpointer         user_data)
@@ -577,6 +593,8 @@ name_acquired_handler (GDBusConnection *connection,
 	for (i = 0; i < NUM_SENSOR_TYPES; i++) {
 		data->clients[i] = create_clients_hash_table ();
 	}
+
+	send_sensor_availability (data);
 
 	send_dbus_event (data, PROP_ALL);
 	return;
@@ -645,7 +663,6 @@ setup_sensors (SensorData *data)
 		data->proximity_sensor = std::make_shared<repowerd::SensorfwProximitySensor>(log,
 			the_dbus_bus_address());
 		data->prox_avaliable = TRUE;
-		send_dbus_event(data, PROP_HAS_PROXIMITY);
 	}
 	catch (std::exception const &e)
 	{
@@ -658,7 +675,6 @@ setup_sensors (SensorData *data)
 		data->light_sensor = std::make_shared<repowerd::SensorfwLightSensor>(log,
 			the_dbus_bus_address());
 		data->light_avaliable = TRUE;
-		send_dbus_event(data, PROP_HAS_AMBIENT_LIGHT);
 	}
 	catch (std::exception const &e)
 	{
@@ -671,7 +687,6 @@ setup_sensors (SensorData *data)
 		data->orientation_sensor = std::make_shared<repowerd::SensorfwOrientationSensor>(log,
 			the_dbus_bus_address());
 		data->accel_avaliable = TRUE;
-		send_dbus_event(data, PROP_HAS_ACCELEROMETER);
 	}
 	catch (std::exception const &e)
 	{
@@ -684,7 +699,6 @@ setup_sensors (SensorData *data)
 		data->compass_sensor = std::make_shared<repowerd::SensorfwCompassSensor>(log,
 			the_dbus_bus_address());
 		data->compass_avaliable = TRUE;
-		send_dbus_event(data, PROP_HAS_COMPASS);
 	}
 	catch (std::exception const &e)
 	{
