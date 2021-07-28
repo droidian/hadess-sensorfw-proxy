@@ -860,15 +860,13 @@ int main (int argc, char **argv)
 	data->loop = g_main_loop_new (NULL, TRUE);
 	g_main_loop_run (data->loop);
 	ret = data->ret;
+
+	disable_sensorfw_events (data, DRIVER_TYPE_ACCEL);
+	disable_sensorfw_events (data, DRIVER_TYPE_LIGHT);
+	disable_sensorfw_events (data, DRIVER_TYPE_COMPASS);
+	disable_sensorfw_events (data, DRIVER_TYPE_PROXIMITY);
+
 	free_sensor_data (data);
-	if (data->prox_avaliable == TRUE)
-		data->proximity_sensor->disable_proximity_events();
-	if (data->light_avaliable == TRUE)
-		data->light_sensor->disable_light_events();
-	if (data->accel_avaliable == TRUE)
-		data->orientation_sensor->disable_orientation_events();
-	if (data->compass_avaliable == TRUE)
-		data->compass_sensor->disable_compass_events();
 
 	return ret;
 }
