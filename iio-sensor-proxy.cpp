@@ -383,6 +383,10 @@ client_release (SensorData            *data,
 		return;
 
 	g_hash_table_remove (ht, sender);
+
+	/* Disable sensorfw events if no one is interested */
+	if (g_hash_table_size (ht) == 0)
+		disable_sensorfw_events (data, driver_type);
 }
 
 static void
@@ -438,6 +442,10 @@ handle_generic_method_call (SensorData            *data,
 			g_dbus_method_invocation_return_value (invocation, NULL);
 			return;
 		}
+
+		/* Ensure events are enabled if the hashtable is currently empty */
+		if (g_hash_table_size (ht) == 0)
+			enable_sensorfw_events (data, driver_type);
 
 		watch_id = g_bus_watch_name_on_connection (data->connection,
 							   sender,
@@ -796,7 +804,6 @@ int main (int argc, char **argv)
 				data->previous_prox_near = (state == repowerd::ProximityState::near);
 				send_dbus_event(data, PROP_PROXIMITY_NEAR);
 			});
-		data->proximity_sensor->enable_proximity_events();
 	}
 	if (data->light_avaliable == TRUE) {
 		light_registration = data->light_sensor->register_light_handler(
@@ -806,7 +813,6 @@ int main (int argc, char **argv)
 					send_dbus_event(data, PROP_LIGHT_LEVEL);
 				}
 			});
-		data->light_sensor->enable_light_events();
 	}
 	if (data->prox_avaliable == TRUE) {
 		orientation_registration = data->orientation_sensor->register_orientation_handler(
@@ -841,7 +847,6 @@ int main (int argc, char **argv)
 					send_dbus_event(data, PROP_ACCELEROMETER_ORIENTATION);
 				}
 			});
-		data->orientation_sensor->enable_orientation_events();
 	}
 	if (data->compass_avaliable == TRUE) {
 		compass_registration = data->compass_sensor->register_compass_handler(
@@ -851,7 +856,6 @@ int main (int argc, char **argv)
 					send_dbus_event(data, PROP_COMPASS_HEADING);
 				}
 			});
-		data->compass_sensor->enable_compass_events();
 	}
 	data->loop = g_main_loop_new (NULL, TRUE);
 	g_main_loop_run (data->loop);
