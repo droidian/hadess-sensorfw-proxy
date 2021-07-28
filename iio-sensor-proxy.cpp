@@ -275,8 +275,10 @@ send_dbus_event (SensorData     *data,
 	gpointer key, value;
 
 	g_assert (mask != 0);
-	g_assert (data->connection);
 	g_assert ((mask & PROP_ALL) == 0 || (mask & PROP_ALL_COMPASS) == 0);
+
+	if (data->connection == NULL)
+		return;
 
 	/* Make a list of the events each client for each sensor
 	 * is interested in */
