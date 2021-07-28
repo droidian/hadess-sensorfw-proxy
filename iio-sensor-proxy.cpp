@@ -148,6 +148,70 @@ enum {
 #define PROP_ALL_COMPASS (PROP_HAS_COMPASS | \
 			  PROP_COMPASS_HEADING)
 
+static void
+enable_sensorfw_events (SensorData *data,
+			DriverType sensor_type)
+{
+	switch (sensor_type) {
+	case DRIVER_TYPE_ACCEL:
+		if (data->accel_avaliable) {
+			g_debug ("Enabling orientation sensor");
+			data->orientation_sensor->enable_orientation_events ();
+		}
+		break;
+	case DRIVER_TYPE_LIGHT:
+		if (data->light_avaliable) {
+			g_debug ("Enabling ambient light sensor");
+			data->light_sensor->enable_light_events ();
+		}
+		break;
+	case DRIVER_TYPE_COMPASS:
+		if (data->compass_avaliable) {
+			g_debug ("Enabling compass sensor");
+			data->compass_sensor->enable_compass_events ();
+		}
+		break;
+	case DRIVER_TYPE_PROXIMITY:
+		if (data->prox_avaliable) {
+			g_debug ("Enabling proximity sensor");
+			data->proximity_sensor->enable_proximity_events ();
+		}
+		break;
+	}
+}
+
+static void
+disable_sensorfw_events (SensorData *data,
+			 DriverType sensor_type)
+{
+	switch (sensor_type) {
+	case DRIVER_TYPE_ACCEL:
+		if (data->accel_avaliable) {
+			g_debug ("Disabling orientation sensor");
+			data->orientation_sensor->disable_orientation_events ();
+		}
+		break;
+	case DRIVER_TYPE_LIGHT:
+		if (data->light_avaliable) {
+			g_debug ("Disabling ambient light sensor");
+			data->light_sensor->disable_light_events ();
+		}
+		break;
+	case DRIVER_TYPE_COMPASS:
+		if (data->compass_avaliable) {
+			g_debug ("Disabling compass sensor");
+			data->compass_sensor->disable_compass_events ();
+		}
+		break;
+	case DRIVER_TYPE_PROXIMITY:
+		if (data->prox_avaliable) {
+			g_debug ("Disabling proximity sensor");
+			data->proximity_sensor->disable_proximity_events ();
+		}
+		break;
+	}
+}
+
 static int
 mask_for_sensor_type (DriverType sensor_type)
 {
