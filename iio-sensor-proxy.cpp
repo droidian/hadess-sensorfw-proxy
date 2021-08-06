@@ -149,19 +149,99 @@ enum {
 			  PROP_COMPASS_HEADING)
 
 static void
-send_dbus_event (SensorData     *data,
-		 int  mask)
+enable_sensorfw_events (SensorData *data,
+			DriverType sensor_type)
+{
+	switch (sensor_type) {
+	case DRIVER_TYPE_ACCEL:
+		if (data->accel_avaliable) {
+			g_debug ("Enabling orientation sensor");
+			data->orientation_sensor->enable_orientation_events ();
+		}
+		break;
+	case DRIVER_TYPE_LIGHT:
+		if (data->light_avaliable) {
+			g_debug ("Enabling ambient light sensor");
+			data->light_sensor->enable_light_events ();
+		}
+		break;
+	case DRIVER_TYPE_COMPASS:
+		if (data->compass_avaliable) {
+			g_debug ("Enabling compass sensor");
+			data->compass_sensor->enable_compass_events ();
+		}
+		break;
+	case DRIVER_TYPE_PROXIMITY:
+		if (data->prox_avaliable) {
+			g_debug ("Enabling proximity sensor");
+			data->proximity_sensor->enable_proximity_events ();
+		}
+		break;
+	}
+}
+
+static void
+disable_sensorfw_events (SensorData *data,
+			 DriverType sensor_type)
+{
+	switch (sensor_type) {
+	case DRIVER_TYPE_ACCEL:
+		if (data->accel_avaliable) {
+			g_debug ("Disabling orientation sensor");
+			data->orientation_sensor->disable_orientation_events ();
+		}
+		break;
+	case DRIVER_TYPE_LIGHT:
+		if (data->light_avaliable) {
+			g_debug ("Disabling ambient light sensor");
+			data->light_sensor->disable_light_events ();
+		}
+		break;
+	case DRIVER_TYPE_COMPASS:
+		if (data->compass_avaliable) {
+			g_debug ("Disabling compass sensor");
+			data->compass_sensor->disable_compass_events ();
+		}
+		break;
+	case DRIVER_TYPE_PROXIMITY:
+		if (data->prox_avaliable) {
+			g_debug ("Disabling proximity sensor");
+			data->proximity_sensor->disable_proximity_events ();
+		}
+		break;
+	}
+}
+
+static int
+mask_for_sensor_type (DriverType sensor_type)
+{
+	switch (sensor_type) {
+	case DRIVER_TYPE_ACCEL:
+		return PROP_HAS_ACCELEROMETER |
+			PROP_ACCELEROMETER_ORIENTATION;
+	case DRIVER_TYPE_LIGHT:
+		return PROP_HAS_AMBIENT_LIGHT |
+			PROP_LIGHT_LEVEL;
+	case DRIVER_TYPE_COMPASS:
+		return PROP_HAS_COMPASS |
+			PROP_COMPASS_HEADING;
+	case DRIVER_TYPE_PROXIMITY:
+		return PROP_HAS_PROXIMITY |
+			PROP_PROXIMITY_NEAR;
+	default:
+		g_assert_not_reached ();
+	}
+}
+
+static void
+send_dbus_event_for_client (SensorData     *data,
+			    const char     *destination_bus_name,
+			    int  mask)
 {
 	GVariantBuilder props_builder;
 	GVariant *props_changed = NULL;
 
-	if (data->connection == NULL)
-		return;
-
-	if (mask == 0)
-		return;
-
-	g_assert ((mask & PROP_ALL) == 0 || (mask & PROP_ALL_COMPASS) == 0);
+	g_return_if_fail (destination_bus_name != NULL);
 
 	g_variant_builder_init (&props_builder, G_VARIANT_TYPE ("a{sv}"));
 
@@ -242,11 +322,50 @@ send_dbus_event (SensorData     *data,
 				       g_variant_new_strv (NULL, 0));
 
 	g_dbus_connection_emit_signal (data->connection,
-				       NULL,
+				       destination_bus_name,
 				       (mask & PROP_ALL) ? SENSOR_PROXY_DBUS_PATH : SENSOR_PROXY_COMPASS_DBUS_PATH,
 				       "org.freedesktop.DBus.Properties",
 				       "PropertiesChanged",
 				       props_changed, NULL);
+}
+
+static void
+send_dbus_event (SensorData     *data,
+		 int             mask)
+{
+	GHashTable *ht;
+	guint i;
+	GHashTableIter iter;
+	gpointer key, value;
+
+	g_assert (mask != 0);
+	g_assert ((mask & PROP_ALL) == 0 || (mask & PROP_ALL_COMPASS) == 0);
+
+	if (data->connection == NULL)
+		return;
+
+	/* Make a list of the events each client for each sensor
+	 * is interested in */
+	ht = g_hash_table_new (g_str_hash, g_str_equal);
+	for (i = 0; i < NUM_SENSOR_TYPES; i++) {
+		GList *clients, *l;
+
+		clients = g_hash_table_get_keys (data->clients[i]);
+		for (l = clients; l != NULL; l = l->next) {
+			int m, new_mask;
+
+			/* Already have a mask? */
+			m = GPOINTER_TO_UINT (g_hash_table_lookup (ht, l->data));
+			new_mask = mask & mask_for_sensor_type ((DriverType) i);
+			m |= new_mask;
+			g_hash_table_insert (ht, l->data, GUINT_TO_POINTER (m));
+		}
+	}
+
+	g_hash_table_iter_init (&iter, ht);
+	while (g_hash_table_iter_next (&iter, &key, &value))
+		send_dbus_event_for_client (data, (const char *) key, GPOINTER_TO_UINT (value));
+	g_hash_table_destroy (ht);
 }
 
 static void
@@ -264,6 +383,10 @@ client_release (SensorData            *data,
 		return;
 
 	g_hash_table_remove (ht, sender);
+
+	/* Disable sensorfw events if no one is interested */
+	if (g_hash_table_size (ht) == 0)
+		disable_sensorfw_events (data, driver_type);
 }
 
 static void
@@ -319,6 +442,10 @@ handle_generic_method_call (SensorData            *data,
 			g_dbus_method_invocation_return_value (invocation, NULL);
 			return;
 		}
+
+		/* Ensure events are enabled if the hashtable is currently empty */
+		if (g_hash_table_size (ht) == 0)
+			enable_sensorfw_events (data, driver_type);
 
 		watch_id = g_bus_watch_name_on_connection (data->connection,
 							   sender,
@@ -477,6 +604,22 @@ name_lost_handler (GDBusConnection *connection,
 }
 
 static void
+send_sensor_availability (SensorData *data)
+{
+	if (data->prox_avaliable)
+		send_dbus_event (data, PROP_HAS_PROXIMITY);
+
+	if (data->light_avaliable)
+		send_dbus_event (data, PROP_HAS_AMBIENT_LIGHT);
+
+	if (data->accel_avaliable)
+		send_dbus_event (data, PROP_HAS_ACCELEROMETER);
+
+	if (data->compass_avaliable)
+		send_dbus_event (data, PROP_HAS_COMPASS);
+}
+
+static void
 bus_acquired_handler (GDBusConnection *connection,
 		      const gchar     *name,
 		      gpointer         user_data)
@@ -524,6 +667,8 @@ name_acquired_handler (GDBusConnection *connection,
 	for (i = 0; i < NUM_SENSOR_TYPES; i++) {
 		data->clients[i] = create_clients_hash_table ();
 	}
+
+	send_sensor_availability (data);
 
 	send_dbus_event (data, PROP_ALL);
 	return;
@@ -592,7 +737,6 @@ setup_sensors (SensorData *data)
 		data->proximity_sensor = std::make_shared<repowerd::SensorfwProximitySensor>(log,
 			the_dbus_bus_address());
 		data->prox_avaliable = TRUE;
-		send_dbus_event(data, PROP_HAS_PROXIMITY);
 	}
 	catch (std::exception const &e)
 	{
@@ -605,7 +749,6 @@ setup_sensors (SensorData *data)
 		data->light_sensor = std::make_shared<repowerd::SensorfwLightSensor>(log,
 			the_dbus_bus_address());
 		data->light_avaliable = TRUE;
-		send_dbus_event(data, PROP_HAS_AMBIENT_LIGHT);
 	}
 	catch (std::exception const &e)
 	{
@@ -618,7 +761,6 @@ setup_sensors (SensorData *data)
 		data->orientation_sensor = std::make_shared<repowerd::SensorfwOrientationSensor>(log,
 			the_dbus_bus_address());
 		data->accel_avaliable = TRUE;
-		send_dbus_event(data, PROP_HAS_ACCELEROMETER);
 	}
 	catch (std::exception const &e)
 	{
@@ -631,7 +773,6 @@ setup_sensors (SensorData *data)
 		data->compass_sensor = std::make_shared<repowerd::SensorfwCompassSensor>(log,
 			the_dbus_bus_address());
 		data->compass_avaliable = TRUE;
-		send_dbus_event(data, PROP_HAS_COMPASS);
 	}
 	catch (std::exception const &e)
 	{
@@ -663,7 +804,6 @@ int main (int argc, char **argv)
 				data->previous_prox_near = (state == repowerd::ProximityState::near);
 				send_dbus_event(data, PROP_PROXIMITY_NEAR);
 			});
-		data->proximity_sensor->enable_proximity_events();
 	}
 	if (data->light_avaliable == TRUE) {
 		light_registration = data->light_sensor->register_light_handler(
@@ -673,7 +813,6 @@ int main (int argc, char **argv)
 					send_dbus_event(data, PROP_LIGHT_LEVEL);
 				}
 			});
-		data->light_sensor->enable_light_events();
 	}
 	if (data->prox_avaliable == TRUE) {
 		orientation_registration = data->orientation_sensor->register_orientation_handler(
@@ -708,7 +847,6 @@ int main (int argc, char **argv)
 					send_dbus_event(data, PROP_ACCELEROMETER_ORIENTATION);
 				}
 			});
-		data->orientation_sensor->enable_orientation_events();
 	}
 	if (data->compass_avaliable == TRUE) {
 		compass_registration = data->compass_sensor->register_compass_handler(
@@ -718,20 +856,17 @@ int main (int argc, char **argv)
 					send_dbus_event(data, PROP_COMPASS_HEADING);
 				}
 			});
-		data->compass_sensor->enable_compass_events();
 	}
 	data->loop = g_main_loop_new (NULL, TRUE);
 	g_main_loop_run (data->loop);
 	ret = data->ret;
+
+	disable_sensorfw_events (data, DRIVER_TYPE_ACCEL);
+	disable_sensorfw_events (data, DRIVER_TYPE_LIGHT);
+	disable_sensorfw_events (data, DRIVER_TYPE_COMPASS);
+	disable_sensorfw_events (data, DRIVER_TYPE_PROXIMITY);
+
 	free_sensor_data (data);
-	if (data->prox_avaliable == TRUE)
-		data->proximity_sensor->disable_proximity_events();
-	if (data->light_avaliable == TRUE)
-		data->light_sensor->disable_light_events();
-	if (data->accel_avaliable == TRUE)
-		data->orientation_sensor->disable_orientation_events();
-	if (data->compass_avaliable == TRUE)
-		data->compass_sensor->disable_compass_events();
 
 	return ret;
 }
