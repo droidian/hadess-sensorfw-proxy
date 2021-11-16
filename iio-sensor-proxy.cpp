@@ -833,10 +833,8 @@ int main (int argc, char **argv)
 					orientation = ORIENTATION_NORMAL;
 					break;
 				case repowerd::OrientationData::FaceDown:
-					orientation = ORIENTATION_NORMAL;
-					break;
 				case repowerd::OrientationData::FaceUp:
-					orientation = ORIENTATION_NORMAL;
+					/* Skip FaceDown/FaceUp events */
 					break;
 				default:
 					orientation = ORIENTATION_UNDEFINED;
