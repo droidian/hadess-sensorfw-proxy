@@ -1,10 +1,10 @@
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: hadess-sensorfw-proxy
 Upstream-Contact: Erfan Abdi <erfangplus@gmail.com>
-Source: https://github.com/hybris-mobian/hadess-sensorfw-proxy
+Source: https://github.com/droidian/hadess-sensorfw-proxy
 
 Files: *
-Copyright: 2020 Hybris-mobian project, Erfan Abdi <erfangplus@gmail.com>
+Copyright: 2020 Droidian project, Erfan Abdi <erfangplus@gmail.com>
 License: GPL-3
 
 License: GPL-3

@@ -12,7 +12,7 @@ Build-Depends: cmake (>= 2.8.10),
                qtbase5-dev,
 Maintainer: Erfan Abdi <erfangplus@gmail.com>
 Standards-Version: 3.9.5
-Homepage: https://github.com/hybris-mobian/hadess-sensorfw-proxy
+Homepage: https://github.com/droidian/hadess-sensorfw-proxy
 
 Package: hadess-sensorfw-proxy
 Section: libs
