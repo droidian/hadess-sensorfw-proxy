@@ -20,6 +20,7 @@
 #include "scoped_g_error.h"
 
 #include <stdexcept>
+#include <cstdint>
 
 repowerd::DBusConnectionHandle::DBusConnectionHandle(std::string const& address)
 {
