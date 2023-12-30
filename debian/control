@@ -2,7 +2,7 @@ Source: hadess-sensorfw-proxy
 Section: admin
 Priority: optional
 Build-Depends: cmake (>= 2.8.10),
-               debhelper (>= 9),
+               debhelper (>= 11),
                dbus,
                libglib2.0-dev,
                libgudev-1.0-dev,
