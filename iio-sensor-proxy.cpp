@@ -174,6 +174,7 @@ enable_sensorfw_events (SensorData *data,
 	case DRIVER_TYPE_PROXIMITY:
 		if (data->prox_available) {
 			g_debug ("Enabling proximity sensor");
+			data->previous_prox_near = FALSE;
 			data->proximity_sensor->enable_proximity_events ();
 		}
 		break;
@@ -189,6 +190,7 @@ disable_sensorfw_events (SensorData *data,
 		if (data->accel_available) {
 			g_debug ("Disabling orientation sensor");
 			data->orientation_sensor->disable_orientation_events ();
+			data->previous_prox_near = FALSE;
 		}
 		break;
 	case DRIVER_TYPE_LIGHT:
