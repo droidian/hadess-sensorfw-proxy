@@ -734,9 +734,13 @@ setup_sensors (SensorData *data)
 
 	try
 	{
-		data->proximity_sensor = std::make_shared<repowerd::SensorfwProximitySensor>(log,
-			the_dbus_bus_address());
-		data->prox_available = TRUE;
+		if (g_strcmp0 (g_getenv ("BROKEN_PROXIMITY"), "1") == 0) {
+			data->prox_available = FALSE;
+		} else {
+			data->proximity_sensor = std::make_shared<repowerd::SensorfwProximitySensor>(log,
+				the_dbus_bus_address());
+			data->prox_available = TRUE;
+		}
 	}
 	catch (std::exception const &e)
 	{
